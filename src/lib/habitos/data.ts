@@ -1,403 +1,66 @@
-import { recetasParaBacterias, nombresABacteriaIds } from "@/lib/recetas/rankear";
-import type { Receta as RecetaMicrobioma } from "@/lib/recetas/data";
+"use client";
 
-/**
- * Datos de referencia para Mis Hábitos. La documentación específica de esta
- * sección ("HTML DE MIS HABTIOS.docx") solo contenía rutas locales rotas de
- * otro ordenador — no accesibles. Esta implementación sigue V10 §4.4
- * (pestañas Microbioma/Deportes/Mi School) con datos de demo; ajustar en
- * cuanto lleguen los HTML de referencia reales.
- */
-
-export type Receta = {
+export type HabitoDocente = {
   id: string;
   nombre: string;
-  bacteriaStrains: string[];
-  gutTags: string[];
   descripcion: string;
+  categoria: string;
 };
 
-export const RECETAS: Receta[] = [
-  { id: "r1", nombre: "Bowl de avena con kéfir y arándanos", bacteriaStrains: ["Bifidobacterium"], gutTags: ["lacteos_ok", "energia"], descripcion: "Fermentados + fibra soluble para regular tránsito." },
-  { id: "r2", nombre: "Salmón al horno con brócoli al vapor", bacteriaStrains: ["Akkermansia"], gutTags: ["antiinflamatorio"], descripcion: "Omega-3 + fibra prebiótica, ideal si hay hinchazón frecuente." },
-  { id: "r3", nombre: "Crema de calabaza sin lácteos", bacteriaStrains: ["Faecalibacterium"], gutTags: ["lacteos_no"], descripcion: "Alternativa reconfortante para quienes no toleran lácteos." },
+export const HABITOS_IDIOMAS: HabitoDocente[] = [
+  { id: "h1", nombre: "Práctica de Listening activa (15 min)", descripcion: "Escucha de audios nativos y podcasts adaptados al nivel MCER.", categoria: "Comprensión" },
+  { id: "h2", nombre: "Lectura y nuevo vocabulario (5 palabras/día)", descripcion: "Incorporación y repaso espaciado de léxico clave.", categoria: "Vocabulario" },
+  { id: "h3", nombre: "Conversación guiada con Teacher MindTwin (20 min)", descripcion: "Práctica de fluidez oral y corrección fonética en tiempo real.", categoria: "Speaking" },
+  { id: "h4", nombre: "Simulación de situaciones reales / Roleplay", descripcion: "Entrevistas de trabajo, viajes y reuniones en inglés.", categoria: "Inmersión" },
 ];
-
-export type Restaurante = { id: string; nombre: string; ciudad: string; tag: string };
-
-export const RESTAURANTES: Restaurante[] = [
-  { id: "re1", nombre: "Verde Menta", ciudad: "Madrid", tag: "Sin gluten" },
-  { id: "re2", nombre: "Raíces", ciudad: "Barcelona", tag: "Fermentados" },
-  { id: "re3", nombre: "Punto Fibra", ciudad: "Valencia", tag: "Alto en fibra" },
-];
-
-/** Deriva la ciudad de una dirección libre ("Calle X, Madrid") comparándola contra las ciudades del catálogo. */
-function ciudadDesdeDireccion(direccion: string): string | null {
-  const ciudades = [...new Set(RESTAURANTES.map((r) => r.ciudad))];
-  return ciudades.find((c) => direccion.toLowerCase().includes(c.toLowerCase())) ?? null;
-}
-
-/** Restaurante recomendado — cerca del domicilio si hay match de ciudad, si no el primero del catálogo. */
-export function restauranteRecomendado(direccion: string): Restaurante {
-  const ciudad = ciudadDesdeDireccion(direccion);
-  return (ciudad && RESTAURANTES.find((r) => r.ciudad === ciudad)) || RESTAURANTES[0];
-}
-
-const EJERCICIOS = [
-  "20 min de caminata a paso ligero",
-  "Sesión de fuerza — tren superior",
-  "Movilidad + estiramientos 15 min",
-  "Sesión de fuerza — tren inferior",
-  "Cardio suave 25 min",
-  "Descanso activo — paseo corto",
-  "Sesión libre a tu ritmo",
-];
-
-export type ItemAgenda = {
-  dia: string;
-  momento: "mañana" | "tarde" | "noche";
-  tipo: "microbioma" | "deporte";
-  ejercicio: string;
-  receta: RecetaMicrobioma | null;
-  restaurante: Restaurante | null;
-};
-
-/**
- * Fallback determinista de agenda semanal. En producción V10 usa Gemini
- * (cron domingo 22:00, cruzando GUT ID snapshot + EGO ID + hábitos activos) —
- * este fallback se usa si GEMINI_API_KEY no está configurada. Incluye
- * ejercicio + receta (motor bacteria→nutriente→receta) + restaurante
- * recomendado cerca de tu domicilio, para que la agenda sea accionable.
- */
-export function generarAgendaFallback(
-  bacteriasDeficientes: string[],
-  domicilioPersonal?: string
-): ItemAgenda[] {
-  const dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-  const bacteriaIds = nombresABacteriaIds(bacteriasDeficientes);
-  const recetasRecomendadas = recetasParaBacterias(bacteriaIds);
-  const restaurante = domicilioPersonal ? restauranteRecomendado(domicilioPersonal) : null;
-
-  return dias.map((dia, i) => ({
-    dia,
-    momento: i % 2 === 0 ? "mañana" : "tarde",
-    tipo: i % 3 === 0 ? "deporte" : "microbioma",
-    ejercicio: EJERCICIOS[i % EJERCICIOS.length],
-    receta: recetasRecomendadas.length > 0 ? recetasRecomendadas[i % recetasRecomendadas.length] : null,
-    // Solo se sugiere restaurante los días que se sale a comer fuera (viernes/sábado, deterministamente).
-    restaurante: (dia === "Viernes" || dia === "Sábado") ? restaurante : null,
-  }));
-}
 
 export const MI_SCHOOL = [
   {
-    pregunta: "¿Qué es el EGO ID?",
-    respuesta: "Tu perfil psicológico completo, calculado con 6 tests validados (Big Five, Eneagrama, apego, foco regulatorio, inteligencia emocional y fortalezas VIA). 100% determinista, sin IA — nunca es una IA \"adivinando\" cómo eres.",
+    pregunta: "¿Qué es el Teacher MindTwin?",
+    respuesta: "Es el gemelo cerebral pedagógico de tu profesor de idiomas, entrenado con su metodología docente, tono, criterio de corrección y voz real para que puedas practicar 24/7 sin barreras de agenda.",
   },
   {
-    pregunta: "¿Qué es el GUT ID?",
-    respuesta: "Tu perfil de microbioma: bacterias dominantes/deficientes, gatillos digestivos y síntomas, en 7 dimensiones (Z/Y/X/W/V/U/T). Se calcula con un cribado inicial de 28 preguntas + 1 pregunta de cribado clínico (ardor/dolor, que nunca diagnostica, solo activa una alerta de \"consulta con un profesional de salud\") y se va afinando con tus autoevaluaciones semanales en Mis Hábitos.",
+    pregunta: "¿Qué es el EGO ID Pedagógico?",
+    respuesta: "El perfil que define la personalidad docente de tu profesor: paciencia, empatía, enfoque comunicativo, rigor en la corrección y modulación mediante las 10 lentes de TALES.",
   },
   {
-    pregunta: "Mis Conversaciones — ¿qué es?",
-    respuesta:
-      "Es el chat con tu MindTwin, en texto, voz o vídeo. Las 3 primeras veces que entres aquí NO es un chat normal: son tus 3 sesiones de creación de perfil (S1, S2, S3), de unos 20 minutos cada una, donde vas respondiendo con normalidad y el sistema construye tu EGO ID sin que rellenes ningún formulario. Después de esas 3 sesiones, Mis Conversaciones se convierte en tu chat habitual con el MindTwin — puedes volver cuando quieras.",
+    pregunta: "Mis Conversaciones — ¿cómo funciona?",
+    respuesta: "Es el espacio de práctica lingüística en texto, voz y videollamada. Como alumno, recibes feedback inmediato: correcciones de frases, pronunciación fonética IPA y notas pedagógicas en español de apoyo.",
   },
   {
-    pregunta: "¿Qué pasa en la Sesión 1 (S1)?",
-    respuesta: "Se calibran tu Big Five (los cinco grandes rasgos de personalidad), un Eneagrama corto y tu estilo de apego. Dura unos 20 minutos y, al terminar, tu twin ya tiene un primer nivel de fidelidad (65-70%).",
+    pregunta: "¿Cómo se estructuran los Niveles MCER?",
+    respuesta: "Tu Teacher MindTwin adapta automáticamente el vocabulario, la velocidad y la complejidad de las frases según tu nivel: desde A1 (principiante) hasta C2 (maestría).",
   },
   {
-    pregunta: "¿Qué pasa en la Sesión 2 (S2)?",
-    respuesta: "Se calibran tu foco regulatorio (si te mueves por metas o por evitar riesgos) y tu inteligencia emocional. También empieza a integrarse tu GUT ID si no tienes N1 conectado. Dura unos 20 minutos y sube tu fidelidad al 82%.",
+    pregunta: "Mis Fuentes — ¿qué representa?",
+    respuesta: "Todo el conocimiento que alimenta al MindTwin: guías docentes, audios de clase, documentos de gramática y conexiones con plataformas profesionales.",
   },
   {
-    pregunta: "¿Qué pasa en la Sesión 3 (S3)?",
-    respuesta: "Se calibran tus fortalezas de carácter (VIA) y, si quieres, clonas tu voz real para que el twin pueda hablar contigo. Dura unos 20-25 minutos + la grabación de voz. Al terminar, tu MindTwin queda activo para todos tus clientes, con un 87% de fidelidad.",
-  },
-  {
-    pregunta: "¿Y la Sesión 4 (S4)?",
-    respuesta: "Es la única sesión deportiva: tus datos de entrenamiento y objetivos (deporte, nivel, frecuencia, lesiones, antropometría). No suma fidelidad del EGO ID, pero permite que tu MindTwin dé recomendaciones deportivas ajustadas a ti, no genéricas.",
-  },
-  {
-    pregunta: "Mis Fuentes — ¿qué es y cómo interactúo?",
-    respuesta:
-      "Aquí ves y activas todo lo que alimenta a tu MindTwin, en 3 bloques: (1) Internas automáticas — EGO ID, GUT ID, autoevaluaciones y tu historial de conversaciones, se activan solas al completar tus sesiones. (2) Externas automatizadas — Google, Instagram, TikTok, WhatsApp y Wearables: pulsas \"Conectar\", nos das el dato mínimo necesario (tu cuenta, tu usuario o el archivo exportado) y esa fuente empieza a sumar fidelidad. (3) Manuales — bioimpedancia y test de microbioma de laboratorio, que subes tú en PDF/CSV para la máxima precisión. Es todo opcional y a tu ritmo, después de terminar tus 3 sesiones.",
-  },
-  {
-    pregunta: "Mi Cerebro — ¿qué es y cómo interactúo?",
-    respuesta:
-      "Es la radiografía de tu perfil: no se edita aquí, solo se lee. Tiene 2 pestañas: \"Quién soy\" (tu Eneagrama, Big Five, apego, VIA y GUT ID explicados en lenguaje humano) y \"Cómo me interpreta la IA\" (las 10 lentes filosóficas que usa tu twin para responder, con el peso de cada una). Sirve para que veas exactamente cómo te representa tu gemelo digital.",
-  },
-  {
-    pregunta: "Mis Hábitos — ¿qué es?",
-    respuesta: "Es tu seguimiento semanal, dividido en dos módulos — Microbiota y Deportes — cada uno con Autoevaluación, Estadísticas, Alertas y Agenda propias.",
-  },
-  {
-    pregunta: "Mis Hábitos — Autoevaluación y Estadísticas",
-    respuesta: "En Autoevaluación respondes cada semana cómo has dormido, tu energía y tu ánimo (o tu adherencia deportiva, en el módulo Deportes). Esa respuesta recalibra tu GUT ID o tu plan y genera tu agenda de la semana siguiente. En Estadísticas ves esa evolución en gráficas, semana a semana.",
-  },
-  {
-    pregunta: "Mis Hábitos — Alertas",
-    respuesta: "Aquí ves los gatillos que tu MindTwin detecta automáticamente en tus autoevaluaciones (por ejemplo, un patrón de síntomas o falta de adherencia repetida). También puedes configurar tus propios recordatorios: qué hábito quieres recordar, cada cuántos días, a qué hora y si el aviso te llega por email, WhatsApp o ambos.",
-  },
-  {
-    pregunta: "Mis Hábitos — Recetas y Restaurantes",
-    respuesta: "Solo en el módulo Microbiota. Recetas te propone platos ordenados según cuántos nutrientes cubren para tus bacterias deficientes. Restaurantes te sugiere sitios cercanos a tu dirección que encajan con lo que necesitas comer esta semana.",
-  },
-  {
-    pregunta: "Mis Hábitos — Constancia",
-    respuesta: "Un módulo nuevo, todavía sin contenido activo — tu profesional lo irá completando próximamente. Cuando lo active aparecerá aquí automáticamente, sin que tengas que hacer nada.",
-  },
-  {
-    pregunta: "Mis Vídeos — ¿qué es y cómo interactúo?",
-    respuesta:
-      "Genera vídeos con tu avatar digital para redes sociales. Primero grabas un único vídeo de 15-20 segundos leyendo un guion corto — con eso el sistema entrena tu avatar y clona tu voz, no hace falta que subas fotos ni grabes nada más. A partir de ahí, escribes lo que quieres que diga tu MindTwin y elige entre hablar a cámara (V1), aparecer en movimiento/acción (V2), combinar ambos, o la variante HeyGen si tu profesional la tiene activada. Todos los vídeos que generas quedan guardados en tu galería.",
-  },
-  {
-    pregunta: "Mis Clientes — ¿qué es y cómo interactúo?",
-    respuesta:
-      "Tu panel de facturación y seguimiento de sesiones: para cada cliente ves sus sesiones de la semana (canal usado y minutos), sus alertas activas y cuánto llevas facturado. Nunca ves el contenido de sus conversaciones ni sus tests psicológicos — eso es privado. Sirve para saber a quién atender antes y para tu control de ingresos.",
-  },
-  {
-    pregunta: "Mis Followers — ¿qué es y cómo interactúo?",
-    respuesta: "El listado real de las personas que están hablando con tu MindTwin: cuándo se dieron de alta, en qué sesión de su onboarding van y su Mindscore actual. Se va llenando solo, en cuanto alguien empieza a conversar con tu twin — no hace falta que invites a nadie manualmente.",
-  },
-  {
-    pregunta: "Mi Facturación — ¿qué es y cómo interactúo?",
-    respuesta: "Aquí ves tus facturas mensuales (tu licencia + las sesiones de tus clientes), su estado de pago y puedes descargarlas. Se genera automáticamente cada mes — no hace falta que hagas nada, salvo tener conectado Stripe para poder cobrar.",
+    pregunta: "Mis Herramientas — ¿para qué sirve?",
+    respuesta: "Centro de control exclusivo para profesores donde gestionar sus 15 servicios académicos: campañas de mailing a alumnos, control de clases y sesiones, cobros y presencia digital.",
   },
 ];
 
-/**
- * Hábitos del módulo "Deportes" de Mis Hábitos — diferentes por deporte
- * (no son hábitos de microbioma), igual que la referencia
- * https://stellular-rugelach-d8c19d.netlify.app.
- */
-export type HabitoDeporte = { emoji: string; nombre: string; categoria: string };
-
-/** Hábitos activos del módulo Microbiota — misma estructura que la referencia (nombre, categoría, estrellas). */
-export const HABITOS_MICROBIOMA: HabitoDeporte[] = [
-  { emoji: "🥤", nombre: "Ayuno intermitente 16h", categoria: "Microbiota · Digestivo" },
-  { emoji: "🥬", nombre: "Fermentados diarios", categoria: "Microbiota · Probióticos" },
-  { emoji: "🐟", nombre: "Omega-3 post-entreno", categoria: "Microbiota · Antiinflamatorio" },
-];
-
-const DEPORTES_PREDEFINIDOS = [
-  "Artes marciales",
-  "Atletismo",
-  "Baile",
-  "Baloncesto",
-  "Boxeo",
-  "Calistenia",
-  "Ciclismo",
-  "Crossfit",
-  "Escalada",
-  "Esquí",
-  "Fuerza",
-  "Fútbol",
-  "Golf",
-  "HIIT / Funcional",
-  "Natación",
-  "Pádel",
-  "Pilates",
-  "Remo",
-  "Rugby",
-  "Running",
-  "Senderismo",
-  "Surf",
-  "Tenis",
-  "Triatlón",
-  "Voleibol",
-  "Yoga",
-] as const;
-
-/** Lista de disciplinas en orden alfabético + "Otros" al final, para que el usuario escriba una que no esté. */
-export const DEPORTES = [...DEPORTES_PREDEFINIDOS, "Otros"] as const;
-
-/** string (no unión estricta) porque "Otros" permite escribir cualquier disciplina que no esté en la lista. */
-export type Deporte = string;
-
-/**
- * Mi School — versión Follower (cliente): explica los conceptos desde su
- * propio punto de vista como cliente del profesional, distinta de MI_SCHOOL
- * (que está escrita desde el punto de vista del Owner construyendo su perfil).
- */
 export const MI_SCHOOL_FOLLOWER = [
   {
-    pregunta: "¿Qué es el EGO ID?",
-    respuesta: "El perfil psicológico completo de tu profesional — cómo piensa, decide y se comunica. Se calcula con 6 tests validados (Big Five, Eneagrama, apego, foco regulatorio, inteligencia emocional y fortalezas VIA). Su MindTwin lo usa para responderte igual que lo haría él o ella en persona.",
+    pregunta: "¿Cómo practico con mi profesor?",
+    respuesta: "Entra en 'Mis Conversaciones' y escribe o habla por el micrófono. Tu Teacher MindTwin te responderá con su voz y corregirá tus errores amablemente.",
   },
   {
-    pregunta: "¿Qué es el GUT ID?",
-    respuesta: "El perfil de microbioma de tu profesional (o el tuyo, si tu plan lo incluye): qué bacterias dominan, cuáles faltan y qué síntomas digestivos son frecuentes, en 7 dimensiones. Se usa para personalizar tus recomendaciones de alimentación y hábitos.",
+    pregunta: "¿Cómo se mide mi progreso?",
+    respuesta: "A través del MindScore y las autoevaluaciones de fluidez, vocabulario incorporado y horas acumuladas de práctica conversacional.",
   },
   {
-    pregunta: "Mis Canales (Texto/Voz/Vídeo) — ¿qué es?",
-    respuesta: "Es donde hablas con el MindTwin de tu profesional ahora mismo, disponible 24/7. Elige texto, voz o videollamada según lo que te apetezca en cada momento — el twin responde igual en los tres, con su tono y su metodología, no con respuestas genéricas.",
-  },
-  {
-    pregunta: "¿Necesito hacer sesiones antes de poder hablar con el twin?",
-    respuesta: "Sí, las 3 primeras veces que entres en Mis Canales no es un chat normal: son tus 3 sesiones de creación de perfil (S1, S2, S3), de unos 20 minutos cada una. Después de esas 3 sesiones, Mis Canales se convierte en tu chat habitual con el MindTwin de tu profesional.",
-  },
-  {
-    pregunta: "¿Qué se calibra en cada sesión?",
-    respuesta:
-      "Sesión 1: tu Big Five (personalidad), Eneagrama corto y tu estilo de apego.\n" +
-      "Sesión 2: tu foco regulatorio (si te mueves por metas o por seguridad) y tu inteligencia emocional.\n" +
-      "Sesión 3: tus fortalezas de carácter (VIA) y, si quieres, tu voz — para que puedas hablar por voz con el twin.",
-  },
-  {
-    pregunta: "Mis Conversaciones — ¿qué es?",
-    respuesta: "Es el historial de tus charlas anteriores con el MindTwin: fecha, canal usado y duración. Sirve para repasar lo que hablasteis — para empezar una charla nueva, usa Mis Canales.",
-  },
-  {
-    pregunta: "Mis Fuentes — ¿qué es?",
-    respuesta: "Aquí ves qué fuentes ha conectado tu profesional para entrenar su MindTwin (Google, Instagram, TikTok, WhatsApp, wearables) — te da transparencia sobre de dónde saca su forma de responder. Es de solo lectura: quien las conecta o desconecta es tu profesional, no tú.",
-  },
-  {
-    pregunta: "Mi Cerebro — ¿qué es?",
-    respuesta: "Es la radiografía del perfil de tu profesional: su Eneagrama, Big Five, apego y fortalezas explicados en lenguaje humano, y las 10 lentes filosóficas que usa la IA para responderte como él o ella lo haría, con el peso de cada una. Solo lectura, no se edita.",
-  },
-  {
-    pregunta: "Mis Hábitos — ¿qué es?",
-    respuesta: "Tu seguimiento semanal, con Autoevaluación (cómo has dormido, tu energía, tu ánimo o tu adherencia deportiva), Estadísticas de tu evolución, Alertas y los hábitos que tu profesional recomienda para tu perfil y tu deporte.",
-  },
-  {
-    pregunta: "Mis Hábitos — Alertas",
-    respuesta: "Puedes configurar tus propios recordatorios de hábitos: qué quieres recordar, cada cuántos días, a qué hora y si el aviso te llega por email, WhatsApp o ambos.",
+    pregunta: "¿Qué incluye mi bolsa de minutos?",
+    respuesta: "Los minutos contratados para hablar y practicar con el gemelo de tu profesor. Puedes recargar cuando lo necesites.",
   },
 ];
 
-export const HABITOS_POR_DEPORTE: Partial<Record<Deporte, HabitoDeporte[]>> = {
-  Boxeo: [
-    { emoji: "🥊", nombre: "Técnica de golpeo · 45 min", categoria: "Boxeo · Técnica" },
-    { emoji: "🏃", nombre: "Road work · 5km", categoria: "Boxeo · Resistencia" },
-    { emoji: "🧘", nombre: "Recuperación activa", categoria: "Boxeo · Recuperación" },
-  ],
-  Running: [
-    { emoji: "🏃", nombre: "Rodaje suave · 8km", categoria: "Running · Base aeróbica" },
-    { emoji: "⚡", nombre: "Series 400m ×8", categoria: "Running · Velocidad" },
-    { emoji: "🦵", nombre: "Fuerza de tren inferior", categoria: "Running · Prevención lesiones" },
-  ],
-  Fuerza: [
-    { emoji: "🏋️", nombre: "Sentadilla + peso muerto", categoria: "Fuerza · Tren inferior" },
-    { emoji: "💪", nombre: "Empuje: press banca/militar", categoria: "Fuerza · Tren superior" },
-    { emoji: "🔄", nombre: "Movilidad y calentamiento", categoria: "Fuerza · Prevención" },
-  ],
-  Yoga: [
-    { emoji: "🧘", nombre: "Vinyasa flow · 45 min", categoria: "Yoga · Movilidad" },
-    { emoji: "🌬️", nombre: "Pranayama / respiración", categoria: "Yoga · Recuperación" },
-    { emoji: "🧠", nombre: "Meditación guiada", categoria: "Yoga · Mente" },
-  ],
-  "Fútbol": [
-    { emoji: "⚽", nombre: "Técnica de control y pase", categoria: "Fútbol · Técnica" },
-    { emoji: "🏃", nombre: "Trabajo de resistencia intermitente", categoria: "Fútbol · Físico" },
-    { emoji: "🦵", nombre: "Fuerza y prevención de isquios", categoria: "Fútbol · Prevención lesiones" },
-  ],
-  Baloncesto: [
-    { emoji: "🏀", nombre: "Tiro y manejo de balón", categoria: "Baloncesto · Técnica" },
-    { emoji: "🤾", nombre: "Pliometría / salto", categoria: "Baloncesto · Potencia" },
-    { emoji: "🦶", nombre: "Estabilidad de tobillo", categoria: "Baloncesto · Prevención lesiones" },
-  ],
-  Tenis: [
-    { emoji: "🎾", nombre: "Golpe de fondo y saque", categoria: "Tenis · Técnica" },
-    { emoji: "🔄", nombre: "Trabajo de rotación de tronco", categoria: "Tenis · Potencia" },
-    { emoji: "🦿", nombre: "Agilidad lateral", categoria: "Tenis · Movilidad" },
-  ],
-  "Pádel": [
-    { emoji: "🎾", nombre: "Volea y bandeja", categoria: "Pádel · Técnica" },
-    { emoji: "🧠", nombre: "Lectura de juego / posicionamiento", categoria: "Pádel · Táctica" },
-    { emoji: "💪", nombre: "Fuerza de hombro y muñeca", categoria: "Pádel · Prevención lesiones" },
-  ],
-  "Natación": [
-    { emoji: "🏊", nombre: "Técnica de crol · series", categoria: "Natación · Técnica" },
-    { emoji: "🌬️", nombre: "Trabajo de respiración", categoria: "Natación · Resistencia" },
-    { emoji: "💪", nombre: "Fuerza de tren superior en seco", categoria: "Natación · Fuerza" },
-  ],
-  Ciclismo: [
-    { emoji: "🚴", nombre: "Rodaje base · Z2", categoria: "Ciclismo · Base aeróbica" },
-    { emoji: "⚡", nombre: "Series de umbral", categoria: "Ciclismo · Rendimiento" },
-    { emoji: "🦵", nombre: "Fuerza de piernas fuera de bici", categoria: "Ciclismo · Fuerza" },
-  ],
-  Crossfit: [
-    { emoji: "🏋️", nombre: "WOD del día", categoria: "Crossfit · Metabólico" },
-    { emoji: "🤸", nombre: "Técnica de levantamientos olímpicos", categoria: "Crossfit · Técnica" },
-    { emoji: "🔄", nombre: "Movilidad articular", categoria: "Crossfit · Prevención" },
-  ],
-  Pilates: [
-    { emoji: "🧘", nombre: "Core y control postural", categoria: "Pilates · Centro" },
-    { emoji: "🔄", nombre: "Movilidad de columna", categoria: "Pilates · Movilidad" },
-    { emoji: "🌬️", nombre: "Respiración y control", categoria: "Pilates · Mente-cuerpo" },
-  ],
-  Escalada: [
-    { emoji: "🧗", nombre: "Bloque / técnica de pies", categoria: "Escalada · Técnica" },
-    { emoji: "💪", nombre: "Fuerza de dedos y antebrazo", categoria: "Escalada · Fuerza" },
-    { emoji: "🔄", nombre: "Movilidad de hombro y cadera", categoria: "Escalada · Prevención" },
-  ],
-  "Artes marciales": [
-    { emoji: "🥋", nombre: "Técnica de golpeo/agarre", categoria: "Artes marciales · Técnica" },
-    { emoji: "🤼", nombre: "Sparring / randori controlado", categoria: "Artes marciales · Aplicación" },
-    { emoji: "🧘", nombre: "Movilidad y recuperación", categoria: "Artes marciales · Recuperación" },
-  ],
-  Voleibol: [
-    { emoji: "🏐", nombre: "Remate y colocación", categoria: "Voleibol · Técnica" },
-    { emoji: "🤾", nombre: "Salto y potencia de tren inferior", categoria: "Voleibol · Potencia" },
-    { emoji: "🦶", nombre: "Prevención de tobillo y hombro", categoria: "Voleibol · Prevención lesiones" },
-  ],
-  Golf: [
-    { emoji: "⛳", nombre: "Swing y putt", categoria: "Golf · Técnica" },
-    { emoji: "🔄", nombre: "Rotación de tronco y cadera", categoria: "Golf · Movilidad" },
-    { emoji: "💪", nombre: "Estabilidad de core", categoria: "Golf · Fuerza" },
-  ],
-  "Atletismo": [
-    { emoji: "🏃", nombre: "Series según prueba (velocidad/fondo)", categoria: "Atletismo · Rendimiento" },
-    { emoji: "⚡", nombre: "Técnica de carrera", categoria: "Atletismo · Técnica" },
-    { emoji: "🦵", nombre: "Fuerza y prevención de lesiones", categoria: "Atletismo · Prevención" },
-  ],
-  "Triatlón": [
-    { emoji: "🏊", nombre: "Sesión de natación", categoria: "Triatlón · Natación" },
-    { emoji: "🚴", nombre: "Sesión de bici", categoria: "Triatlón · Ciclismo" },
-    { emoji: "🏃", nombre: "Sesión de carrera / brick", categoria: "Triatlón · Running" },
-  ],
-  Senderismo: [
-    { emoji: "🥾", nombre: "Ruta larga · desnivel", categoria: "Senderismo · Resistencia" },
-    { emoji: "🦵", nombre: "Fuerza de piernas y core", categoria: "Senderismo · Fuerza" },
-    { emoji: "🎒", nombre: "Entrenamiento con carga (mochila)", categoria: "Senderismo · Específico" },
-  ],
-  Remo: [
-    { emoji: "🚣", nombre: "Técnica de remada", categoria: "Remo · Técnica" },
-    { emoji: "⚡", nombre: "Series de umbral en ergómetro", categoria: "Remo · Rendimiento" },
-    { emoji: "💪", nombre: "Fuerza de tirón (espalda/piernas)", categoria: "Remo · Fuerza" },
-  ],
-  "Esquí": [
-    { emoji: "⛷️", nombre: "Técnica de curva y equilibrio", categoria: "Esquí · Técnica" },
-    { emoji: "🦵", nombre: "Fuerza de piernas (sentadilla isométrica)", categoria: "Esquí · Preparación física" },
-    { emoji: "🔄", nombre: "Propiocepción y equilibrio", categoria: "Esquí · Prevención lesiones" },
-  ],
-  Surf: [
-    { emoji: "🏄", nombre: "Remada y pop-up", categoria: "Surf · Técnica" },
-    { emoji: "💪", nombre: "Fuerza de hombro y core", categoria: "Surf · Fuerza" },
-    { emoji: "🔄", nombre: "Movilidad de cadera y tobillo", categoria: "Surf · Movilidad" },
-  ],
-  Baile: [
-    { emoji: "💃", nombre: "Coreografía / técnica", categoria: "Baile · Técnica" },
-    { emoji: "🔄", nombre: "Movilidad y flexibilidad", categoria: "Baile · Movilidad" },
-    { emoji: "🫀", nombre: "Resistencia cardiovascular", categoria: "Baile · Resistencia" },
-  ],
-  Calistenia: [
-    { emoji: "💪", nombre: "Dominadas y fondos", categoria: "Calistenia · Fuerza" },
-    { emoji: "🤸", nombre: "Progresiones (muscle-up, plancha)", categoria: "Calistenia · Técnica" },
-    { emoji: "🔄", nombre: "Movilidad de hombro", categoria: "Calistenia · Prevención" },
-  ],
-  "HIIT / Funcional": [
-    { emoji: "⚡", nombre: "Circuito de alta intensidad", categoria: "HIIT · Metabólico" },
-    { emoji: "🏋️", nombre: "Patrones funcionales (empuje/tirón/bisagra)", categoria: "HIIT · Fuerza funcional" },
-    { emoji: "🧘", nombre: "Movilidad post-entreno", categoria: "HIIT · Recuperación" },
-  ],
-  Rugby: [
-    { emoji: "🏉", nombre: "Placaje y contacto", categoria: "Rugby · Técnica" },
-    { emoji: "🏋️", nombre: "Fuerza y potencia general", categoria: "Rugby · Físico" },
-    { emoji: "🏃", nombre: "Resistencia intermitente", categoria: "Rugby · Resistencia" },
-  ],
-};
+export const DEPORTES = ["Inglés General", "Business English", "Preparación Cambridge/IELTS", "Pronunciación & Fonética"];
+export const RESTAURANTES = [];
+export const HABITOS_POR_DEPORTE = {};
+export const HABITOS_MICROBIOMA = [];
+
+export function generarAgendaFallback() {
+  return [];
+}

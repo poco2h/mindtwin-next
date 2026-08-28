@@ -5,27 +5,27 @@ import Link from "next/link";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import ConversarPreview from "@/components/landing/ConversarPreview";
-import LiliGuideSearch from "@/components/landing/LiliGuideSearch";
+import LiliGuiaPersonal from "@/components/LiliGuiaPersonal";
 import { MI_SCHOOL } from "@/lib/habitos/data";
 
 const PASOS = [
-  { n: "01", t: "El profesional publica su gemelo cerebral", d: "En 3 sesiones de 20 min, tu entrenador o nutricionista construye su MindTwin: EGO ID, GUT ID, voz clonada y avatar." },
-  { n: "02", t: "Tú contratas el servicio Mindtwins", d: "Encuentras a tu profesional en Lili Fit y activas el acceso a su gemelo. Pagas solo las sesiones que uses." },
-  { n: "03", t: "Generas tu propio gemelo cerebral", d: "En 3 conversaciones de 20 min construyes tu Mi MindTwin: EGO ID y voz, para respuestas 100% personalizadas." },
-  { n: "04", t: "Ambos gemelos conversan entre ellos", d: "El gemelo de tu profesional conoce tu EGO ID y tu microbioma. Cada sesión es para ti — no genérica." },
+  { n: "01", t: "El profesor publica su gemelo cerebral", d: "En 3 sesiones de 20 min, tu profesor de idiomas construye su Teacher MindTwin: EGO ID pedagógico, voz clonada y avatar." },
+  { n: "02", t: "Tú activas el servicio MindTwins", d: "Encuentras a tu profesor en Lili Speak y activas el acceso a su gemelo. Practicas sin límite de horario." },
+  { n: "03", t: "Generas tu propio perfil de aprendizaje", d: "En conversaciones guiadas construyes tu perfil de idiomas: nivel, intereses y objetivos de fluidez." },
+  { n: "04", t: "Practicas en cualquier momento 24/7", d: "El gemelo de tu profesor conoce tu nivel y tus puntos de mejora. Cada sesión es 100% personalizada." },
 ];
 
 const CANALES = [
-  { t: "Texto", d: "Chat disponible siempre. Pregunta, recibe un plan, revisa tu progreso.", tag: "RESPUESTA INSTANTÁNEA · 24/7" },
-  { t: "Voz", d: "Habla con tu profesional — con su voz real. Sin esperas, sin agenda, en tiempo real.", tag: "VOZ REAL · TIEMPO REAL · 24/7" },
-  { t: "Videoconferencia", d: "Videollamada en tiempo real con el avatar digital de tu profesional.", tag: "VIDEOLLAMADA REAL · SIN AGENDA" },
+  { t: "Texto", d: "Chat interactivo siempre disponible. Pregunta dudas gramaticales, traduce o mantén conversaciones.", tag: "RESPUESTA INSTANTÁNEA · 24/7" },
+  { t: "Voz", d: "Habla con tu profesor — con su voz real. Práctica de pronunciación y fluidez oral en tiempo real.", tag: "VOZ REAL · TIEMPO REAL · 24/7" },
+  { t: "Videoconferencia", d: "Videollamada en tiempo real con el avatar digital de tu profesor.", tag: "VIDEOLLAMADA REAL · SIN AGENDA" },
 ];
 
 const SECCIONES = [
-  { t: "Conversar", d: "El espacio principal de sesiones. Texto, voz o videoconferencia — disponible 24/7, adaptado a tu perfil." },
-  { t: "Mis Fuentes", d: "El conocimiento de tu profesional para ti: artículos, vídeos y planes que tu gemelo te recomienda." },
-  { t: "Mi Cerebro", d: "Tu perfil completo visualizado: EGO ID y GUT ID. Ves quién eres — y cómo tu gemelo te ve." },
-  { t: "Mis Hábitos", d: "Seguimiento de hábitos diseñados para tu perfil: entrenamiento, nutrición, sueño y recuperación." },
+  { t: "Conversar", d: "El espacio principal de práctica. Texto o voz — disponible 24/7, adaptado a tu nivel." },
+  { t: "Mis Fuentes", d: "El material docente de tu profesor: guías, audios y directrices pedagógicas." },
+  { t: "Mi Cerebro", d: "Tu perfil visualizado: estilo de aprendizaje y las 10 lentes filosóficas que modulan las respuestas." },
+  { t: "Mi Progreso", d: "Seguimiento activo: autoevaluaciones de fluidez, alertas de errores recurrentes, estadísticas y agenda." },
 ];
 
 export default function FollowerLanding() {
@@ -38,20 +38,21 @@ export default function FollowerLanding() {
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <Logo size={30} />
-            <span className="text-[10px] leading-tight text-[rgb(99,99,99)]">Para usuarios</span>
+            <span className="text-[10px] leading-tight text-[rgb(99,99,99)]">Lili Speak</span>
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-[11px] text-[rgb(99,99,99)]">
             <a href="#school" className="hover:text-black">Cómo funciona</a>
+            <Link href="/tarifas" className="hover:text-black">Tarifas</Link>
             <a href="#canales" className="hover:text-black">Canales</a>
-            <Link href="/app/conversar?role=follower" className="font-bold text-[#1abc9c] hover:text-black">Demo</Link>
-            <Link href="/profesionales" className="hover:text-black">Soy profesional</Link>
+            <Link href="/app/conversar" className="font-bold text-[#1abc9c] hover:text-black">Demo</Link>
+            <Link href="/profesionales" className="hover:text-black">Para profesores</Link>
           </nav>
           <div className="flex items-center gap-3">
             <Link
-              href="/clientes/buscar"
+              href="/app/conversar"
               className="hidden rounded-full bg-black px-[30px] py-[13px] text-[10px] font-semibold text-white hover:bg-[#1abc9c] transition-colors md:inline-block"
             >
-              Encontrar mi profesional
+              Probar Demo →
             </Link>
             <button
               onClick={() => setMenuAbierto((v) => !v)}
@@ -67,43 +68,45 @@ export default function FollowerLanding() {
         {menuAbierto && (
           <nav className="mt-3 flex flex-col gap-4 border-t border-black/10 pt-3 text-sm md:hidden">
             <a href="#school" onClick={() => setMenuAbierto(false)} className="text-black/70">Cómo funciona</a>
+            <Link href="/tarifas" onClick={() => setMenuAbierto(false)} className="text-black/70">Tarifas</Link>
             <a href="#canales" onClick={() => setMenuAbierto(false)} className="text-black/70">Canales</a>
-            <Link href="/app/conversar?role=follower" onClick={() => setMenuAbierto(false)} className="font-bold text-[#1abc9c]">Demo</Link>
-            <Link href="/profesionales" onClick={() => setMenuAbierto(false)} className="text-black/70">Soy profesional</Link>
+            <Link href="/app/conversar" onClick={() => setMenuAbierto(false)} className="font-bold text-[#1abc9c]">Demo</Link>
+            <Link href="/profesionales" onClick={() => setMenuAbierto(false)} className="text-black/70">Para profesores</Link>
             <Link
-              href="/clientes/buscar"
+              href="/app/conversar"
               onClick={() => setMenuAbierto(false)}
               className="rounded-full bg-black px-[30px] py-[13px] text-center text-[11px] font-semibold text-white"
             >
-              Encontrar mi profesional
+              Probar Demo →
             </Link>
           </nav>
         )}
       </header>
 
       <main className="pt-24">
-        {/* BLOQUE 1 · HERO + PREVIEW CONVERSAR — BLANCO (obligatorio) */}
+        {/* BLOQUE 1 · HERO + PREVIEW CONVERSAR */}
         <section className="bg-white px-6 py-20">
           <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2">
             <div>
-              <p className="text-[10px] text-[rgb(99,99,99)]">
-                Tu entrenador · tu nutricionista · siempre contigo
+              <p className="text-[10px] text-[rgb(99,99,99)] uppercase tracking-wider">
+                Para estudiantes de idiomas · profesionales · viajeros
               </p>
               <h1 className="mt-8 font-serif text-[42px] leading-[1.05] font-normal text-black md:text-[52px] md:leading-[1.05]">
-                Tu profesional fitness,
+                Tu profesor de idiomas,
                 <br />
                 <em className="font-normal not-italic text-[rgb(99,99,99)]">sin horario.</em>
               </h1>
               <p className="mt-8 max-w-xl text-[15px] font-light leading-[26.25px] text-[rgb(99,99,99)]">
-                Accede al gemelo cerebral de tu entrenador o nutricionista cuando lo necesites —
-                en texto, con su voz o en videollamada. 24 horas, 7 días, 50 idiomas.
+                Accede al gemelo cerebral de tu profesor de idiomas cuando lo necesites —
+                en texto o con su voz real. 24 horas, 7 días, 50 idiomas.
               </p>
-              <div className="mt-8 flex flex-wrap gap-4">
+
+              <div className="mt-8 flex flex-wrap items-center gap-4">
                 <Link
-                  href="/clientes/buscar"
-                  className="rounded-full bg-black px-[30px] py-[13px] text-[11px] font-semibold text-white hover:bg-[#1abc9c] transition-colors"
+                  href="/app/conversar"
+                  className="rounded-full bg-black px-[30px] py-[13px] text-[11px] font-semibold text-white hover:bg-[#1abc9c] transition-colors shadow-sm"
                 >
-                  Encontrar mi profesional →
+                  Entrar a la Sala de Práctica →
                 </Link>
                 <a
                   href="#school"
@@ -116,32 +119,36 @@ export default function FollowerLanding() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/mindtwin-bustos.jpg"
-              alt="Dos gemelos cerebrales conectados"
+              alt="Teacher MindTwin Lili Speak"
               className="mx-auto w-full max-w-md rounded-3xl border border-black/10"
             />
           </div>
+        </section>
 
-          <div className="mx-auto mt-16 max-w-5xl text-center">
+        {/* LILI · TU GUÍA PERSONAL (Justo debajo del hero) */}
+        <LiliGuiaPersonal />
+
+        {/* PREVIEW CONVERSAR */}
+        <section className="bg-white px-6 py-20">
+          <div className="mx-auto max-w-5xl text-center">
             <p className="text-xs font-semibold uppercase tracking-widest text-[rgb(99,99,99)]">
-              Una conversación real de Lili Fit
+              Una conversación real de Lili Speak
             </p>
             <h2 className="mt-3 font-serif text-3xl md:text-4xl">
-              Tu profesional te conoce de verdad — psicología + microbioma
+              Tu profesor te guía paso a paso — pedagogía adaptativa
             </h2>
           </div>
           <ConversarPreview />
         </section>
 
-        <LiliGuideSearch marca="Lili Fit" />
-
-        {/* BLOQUE 2 · PASOS — NEGRO */}
+        {/* BLOQUE 2 · PASOS */}
         <section className="bg-black px-6 py-20 text-white">
           <div className="mx-auto max-w-5xl">
             <p className="text-xs font-semibold uppercase tracking-widest text-white/50">
-              ¿Qué es Mindtwins · Lili Fit?
+              ¿Qué es MindTwins · Lili Speak?
             </p>
             <h2 className="mt-3 font-serif text-3xl md:text-4xl">
-              Tu profesional fitness. Su gemelo cerebral, disponible 24/7.
+              Tu profesor de idiomas. Su gemelo digital, disponible 24/7.
             </h2>
             <div className="mt-10 grid gap-6 md:grid-cols-2">
               {PASOS.map((p) => (
@@ -152,17 +159,14 @@ export default function FollowerLanding() {
                 </div>
               ))}
             </div>
-            <p className="mt-8 text-center text-sm text-white/60">
-              Todo en menos de 2 horas de configuración · Activo para siempre
-            </p>
           </div>
         </section>
 
-        {/* BLOQUE 3 · CANALES — BLANCO */}
+        {/* BLOQUE 3 · CANALES */}
         <section id="canales" className="bg-white px-6 py-20">
           <div className="mx-auto max-w-5xl">
             <p className="text-xs font-semibold uppercase tracking-widest text-[rgb(99,99,99)]">Los canales</p>
-            <h2 className="mt-3 font-serif text-3xl md:text-4xl">Elige cómo quieres conectar hoy.</h2>
+            <h2 className="mt-3 font-serif text-3xl md:text-4xl">Elige cómo quieres practicar hoy.</h2>
             <div className="mt-10 grid gap-6 md:grid-cols-3">
               {CANALES.map((c) => (
                 <div key={c.t} className="rounded-2xl border border-black/10 p-6">
@@ -177,14 +181,14 @@ export default function FollowerLanding() {
           </div>
         </section>
 
-        {/* BLOQUE 4 · MI MINDTWIN (4 áreas) — NEGRO */}
+        {/* BLOQUE 4 · MI MINDTWIN (4 áreas) */}
         <section className="bg-black px-6 py-20 text-white">
           <div className="mx-auto max-w-5xl">
             <p className="text-xs font-semibold uppercase tracking-widest text-white/50">
               Mi MindTwin · lo que encuentras dentro
             </p>
             <h2 className="mt-3 font-serif text-3xl md:text-4xl">
-              Tu gemelo cerebral. Cuatro espacios, una sola experiencia.
+              Tu gemelo docente. Cuatro espacios, una sola experiencia.
             </h2>
             <div className="mt-10 grid gap-5 md:grid-cols-2">
               {SECCIONES.map((s) => (
@@ -197,7 +201,7 @@ export default function FollowerLanding() {
           </div>
         </section>
 
-        {/* BLOQUE 5 · MI SCHOOL → FAQs — BLANCO (último bloque antes del CTA) */}
+        {/* BLOQUE 5 · MI SCHOOL */}
         <section id="school" className="bg-white px-6 py-20">
           <div className="mx-auto max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-widest text-[rgb(99,99,99)]">
@@ -229,17 +233,17 @@ export default function FollowerLanding() {
           </div>
         </section>
 
-        {/* BLOQUE 6 · CTA final — NEGRO */}
+        {/* BLOQUE 6 · CTA final */}
         <section id="cta" className="bg-black px-6 py-20 text-center text-white">
-          <h2 className="font-serif text-3xl md:text-4xl">Tu profesional fitness. Hoy Mismo.</h2>
+          <h2 className="font-serif text-3xl md:text-4xl">Tu profesor de idiomas. 24/7.</h2>
           <p className="mx-auto mt-3 max-w-xl text-white/70">
-            Sin permanencia, sin suscripción. Pagas solo las sesiones que uses.
+            Aprende a tu propio ritmo con la metodología de tu profesor particular.
           </p>
           <Link
-            href="/clientes/buscar"
+            href="/app/conversar"
             className="mt-6 inline-block rounded-full bg-[#1abc9c] px-8 py-3 text-sm font-semibold text-black hover:opacity-90"
           >
-            Encontrar mi profesional →
+            Probar Demo Ahora →
           </Link>
         </section>
 

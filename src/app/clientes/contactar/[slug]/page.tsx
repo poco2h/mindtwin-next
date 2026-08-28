@@ -17,7 +17,7 @@ export default async function ContactarPage({
     <div className="mt-landing min-h-screen">
       <header className="flex items-center gap-3 border-b border-black/10 px-6 py-4">
         <Logo size={32} />
-        <div className="text-sm font-bold">Mindtwins · Lili Fit</div>
+        <div className="text-sm font-bold">MindTwins · Lili Speak</div>
         <Link href="/clientes/buscar" className="ml-auto text-sm text-black/50 hover:text-black">
           ← Volver a la búsqueda
         </Link>
@@ -30,8 +30,7 @@ export default async function ContactarPage({
         <p className="mt-2 text-black/60">{profesional.bio}</p>
         <p className="mt-4 rounded-lg bg-[#f9f9f9] p-4 text-sm text-black/60">
           Al contactar, {profesional.nombre.split(" ")[0]} te responderá por email con sus
-          tarifas exactas y un link de pago. Lili Fit no fija ni muestra precios aquí — los
-          fija cada profesional.
+          opciones de clase y horario. Lili Speak te conecta directamente con tu profesor.
         </p>
         <ContactarForm slug={profesional.slug} />
       </main>

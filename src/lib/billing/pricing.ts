@@ -2,7 +2,7 @@ export type Canal = "texto" | "voz" | "video_rt";
 
 /**
  * Tasas variables base en €/minuto (coste de infraestructura Gemini/ElevenLabs/Tavus/LiveKit).
- * Fuente: Especificación Lili Fit Backend v1.0 (§11).
+ * Fuente: Especificación Lili Speak Backend v1.0 (§11).
  */
 export const TASA_VARIABLE: Record<Canal, number> = {
   texto: 0.001048,
@@ -41,7 +41,7 @@ export const PRECIOS_BASE_PAQUETES: Record<Canal, Record<PaqueteMinutos, number>
 };
 
 /**
- * Calcula el precio base de Lili Fit para un número arbitrario de minutos reales.
+ * Calcula el precio base de Lili Speak para un número arbitrario de minutos reales.
  * Fórmula: (0,76 € fijo + tasa_variable × minutos) × 3 × 1,21
  */
 export function calcularPrecioBase(canal: Canal, minutosReales: number): number {

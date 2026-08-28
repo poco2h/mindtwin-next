@@ -16,22 +16,21 @@ export default async function BuscarProfesionalPage({
     <div className="mt-landing min-h-screen">
       <header className="flex items-center gap-3 border-b border-black/10 px-6 py-4">
         <Logo size={32} />
-        <div className="text-sm font-bold">Mindtwins · Lili Fit</div>
+        <div className="text-sm font-bold">MindTwins · Lili Speak</div>
         <Link href="/" className="ml-auto text-sm text-black/50 hover:text-black">
           ← Volver
         </Link>
       </header>
 
       <main className="mx-auto max-w-4xl px-6 py-14">
-        <h1 className="font-serif text-3xl">Encuentra a tu profesional</h1>
+        <h1 className="font-serif text-3xl">Encuentra a tu profesor de idiomas</h1>
         <p className="mt-2 text-black/60">
-          Búsqueda determinista por nombre, especialidad o ciudad — sin recomendaciones por IA,
-          sin mostrar precios de Poco2h. El precio final lo fija cada profesional.
+          Búsqueda por idioma, especialidad o ciudad. Practica con su Teacher MindTwin 24/7.
         </p>
         {ciudadDetectada && (
           <p className="mt-1 text-xs text-[#1abc9c]">
             Detectamos que estás cerca de {ciudadDetectada} — mostramos primero a los
-            profesionales de tu zona.
+            profesores de tu zona.
           </p>
         )}
 
@@ -39,13 +38,13 @@ export default async function BuscarProfesionalPage({
           <input
             name="q"
             defaultValue={params.q ?? ""}
-            placeholder="Nombre o palabra clave"
+            placeholder="Nombre o idioma"
             className="rounded-lg border border-black/15 px-3 py-2 md:col-span-2"
           />
           <input
             name="especialidad"
             defaultValue={params.especialidad ?? ""}
-            placeholder="Especialidad (ej. nutricionista)"
+            placeholder="Especialidad (ej. Francés)"
             className="rounded-lg border border-black/15 px-3 py-2"
           />
           <input
@@ -61,7 +60,7 @@ export default async function BuscarProfesionalPage({
 
         <div className="mt-10 grid gap-4">
           {resultados.length === 0 && (
-            <p className="text-black/50">No hay profesionales que coincidan con esa búsqueda.</p>
+            <p className="text-black/50">No hay profesores que coincidan con esa búsqueda.</p>
           )}
           {resultados.map((p) => (
             <div key={p.slug} className="flex items-center justify-between rounded-2xl border border-black/10 p-5">

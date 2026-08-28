@@ -1,17 +1,14 @@
 import type { EgoId } from "@/lib/ego/types";
 import type { Filosofo } from "@/lib/ego/talesWeights";
-import type { GutData } from "@/lib/gut/types";
 
-/** V10 §10.1 + DOC7_twin_profile_schema_v2.json */
 export type TwinProfile = {
   twin_id: string;
   role: "owner" | "follower";
-  owner_id?: string; // solo si role === "follower"
+  owner_id?: string;
   owner_name: string;
   ego_id: EgoId | null;
   tales_weights: Record<Filosofo, number> | null;
   tales_data: Record<Filosofo, number>; // 0-1, crece con cada sesión
-  gut_data: GutData;
   fidelity_score: number; // 0-1
   elevenlabs_voice_id: string | null;
   higgsfield_soul_id: string | null;
@@ -44,17 +41,6 @@ export function twinProfileVacio(params: {
     tales_data: {
       "Demócrito": 0, "Sócrates": 0, "Aristóteles": 0, "Epicuro": 0, "Platón": 0,
       "Séneca": 0, "Gorgias": 0, "Heráclito": 0, "Homero": 0, "Kant": 1,
-    },
-    gut_data: {
-      source: null,
-      gut_baseline_score: null,
-      bacterias_dominantes: [],
-      bacterias_deficientes: [],
-      gatillos: [],
-      sintomas: [],
-      n1_connected: false,
-      n1_user_id: null,
-      last_updated: null,
     },
     fidelity_score: 0,
     elevenlabs_voice_id: null,

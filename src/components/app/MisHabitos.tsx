@@ -2,561 +2,275 @@
 
 import { useState } from "react";
 import { useTwin } from "@/lib/session/useTwin";
-import { RESTAURANTES, generarAgendaFallback, DEPORTES, HABITOS_POR_DEPORTE, HABITOS_MICROBIOMA, type Deporte, type HabitoDeporte } from "@/lib/habitos/data";
-import { recetasParaBacterias, nombresABacteriaIds } from "@/lib/recetas/rankear";
-import { enviarAgendaAlProfesional } from "@/lib/actions/agenda";
-import Autoevaluacion from "./Autoevaluacion";
 
 const MODULOS = [
-  { key: "microbiota", label: "🦠 Microbiota" },
-  { key: "deportes", label: "🏃 Deportes" },
-  { key: "constancia", label: "🔥 Constancia" },
+  { key: "speaking", label: "🗣️ Práctica Oral (Speaking)" },
+  { key: "listening", label: "🎧 Comprensión (Listening)" },
+  { key: "vocabulario", label: "📚 Vocabulario & Gramática" },
+  { key: "recordatorios", label: "🔔 Recordatorios & Alertas" },
 ] as const;
+
 type Modulo = (typeof MODULOS)[number]["key"];
 
-const SUB_MICROBIOTA = [
-  { key: "autoevaluacion", label: "📝 Autoevaluación" },
-  { key: "estadisticas", label: "📊 Estadísticas" },
-  { key: "alertas", label: "🔔 Alertas" },
-  { key: "recetas", label: "🍽️ Recetas" },
-  { key: "restaurantes", label: "🗺️ Restaurantes" },
-  { key: "agenda", label: "📅 Agenda" },
-] as const;
+const HABITOS_SUGERIDOS: Record<Modulo, Array<{ nombre: string; desc: string; duracion: string }>> = {
+  speaking: [
+    { nombre: "Conversación con Teacher MindTwin", desc: "Práctica de fluidez oral en inglés de 15-20 min.", duracion: "20 min/día" },
+    { nombre: "Lectura en voz alta con IPA", desc: "Enfoque en entonación y pronunciación de vocales complejas.", duracion: "10 min/día" },
+    { nombre: "Simulación de Roleplay / Entrevista", desc: "Casos prácticos de trabajo y reuniones internacionales.", duracion: "15 min/sesión" },
+  ],
+  listening: [
+    { nombre: "Podcast nativo por nivel MCER", desc: "Escucha activa sin subtítulos para acostumbrar el oído.", duracion: "15 min/día" },
+    { nombre: "Transcripción de fragmentos de audio", desc: "Anotar lo escuchado para fijar estructuras gramaticales.", duracion: "10 min/sesión" },
+  ],
+  vocabulario: [
+    { nombre: "5 nuevas palabras en contexto", desc: "Creación de frases propias con el nuevo léxico del día.", duracion: "5 min/día" },
+    { nombre: "Repaso de notas fonéticas", desc: "Revisar los términos corregidos por el MindTwin.", duracion: "5 min/día" },
+  ],
+  recordatorios: [],
+};
 
-const SUB_DEPORTES = [
-  { key: "autoevaluacion", label: "📝 Autoevaluación" },
-  { key: "estadisticas", label: "📊 Estadísticas" },
-  { key: "alertas", label: "🔔 Alertas" },
-  { key: "planes", label: "💪 Planes" },
-  { key: "agenda", label: "📅 Agenda" },
-] as const;
-
-function fechaHoy() {
-  return new Date().toLocaleDateString("es-ES", { day: "numeric", month: "short" }).toUpperCase();
-}
-
-const FRECUENCIAS = Array.from({ length: 14 }, (_, i) => i + 1);
-const CANALES = [
-  { key: "email", label: "Email" },
-  { key: "whatsapp", label: "WhatsApp" },
-  { key: "ambos", label: "Ambos" },
-] as const;
+const FRECUENCIAS = [1, 2, 3, 5, 7];
 
 export default function MisHabitos() {
   const { twin, guardar } = useTwin();
-  const [recHabito, setRecHabito] = useState("");
-  const [recFrecuencia, setRecFrecuencia] = useState(7);
+  const [modulo, setModulo] = useState<Modulo>("speaking");
+  const [subTab, setSubTab] = useState<"habitos" | "evaluacion" | "estadisticas">("habitos");
+
+  const [recTexto, setRecTexto] = useState("");
+  const [recFrecuencia, setRecFrecuencia] = useState(1);
   const [recHora, setRecHora] = useState("09:00");
-  const [recCanal, setRecCanal] = useState<"email" | "whatsapp" | "ambos">("email");
-  const [recTelefono, setRecTelefono] = useState("");
-  const [modulo, setModulo] = useState<Modulo>("microbiota");
-  const [sub, setSub] = useState<string>("autoevaluacion");
-  const [enviando, setEnviando] = useState(false);
-  const [enviado, setEnviado] = useState<string | null>(null);
-  const [deporte, setDeporte] = useState<Deporte>("Boxeo");
-  const [habitosExtra, setHabitosExtra] = useState<Record<string, HabitoDeporte[]>>({});
-  const [nuevoAbierto, setNuevoAbierto] = useState(false);
-  const [nuevoNombre, setNuevoNombre] = useState("");
-  const [nuevaCategoria, setNuevaCategoria] = useState("");
-  const [otroDeporteAbierto, setOtroDeporteAbierto] = useState(false);
-  const [otroDeporteTexto, setOtroDeporteTexto] = useState("");
+  const [recCanal, setRecCanal] = useState<"email" | "whatsapp">("email");
+  const [recGuardado, setRecGuardado] = useState(false);
 
-  const gatillos = twin?.gut.gatillos ?? [];
-  const bacteriasDeficientes = twin?.gut.bacterias_deficientes ?? [];
-  const agenda = generarAgendaFallback(bacteriasDeficientes, twin?.direcciones?.domicilioPersonal);
-  const recetasRecomendadas = recetasParaBacterias(nombresABacteriaIds(bacteriasDeficientes));
-  const claveHabitos = modulo === "microbiota" ? "microbiota" : deporte;
-  const habitosBase = modulo === "microbiota" ? HABITOS_MICROBIOMA : (HABITOS_POR_DEPORTE[deporte] ?? []);
-  const habitosActivos = [...habitosBase, ...(habitosExtra[claveHabitos] ?? [])];
-  const subTabs = modulo === "microbiota" ? SUB_MICROBIOTA : SUB_DEPORTES;
+  const [confianzaSpeaking, setConfianzaSpeaking] = useState(4);
+  const [adherenciaSemanal, setAdherenciaSemanal] = useState(5);
+  const [evalGuardada, setEvalGuardada] = useState(false);
 
-  function anadirHabito() {
-    if (!nuevoNombre.trim()) return;
-    setHabitosExtra((prev) => ({
-      ...prev,
-      [claveHabitos]: [
-        ...(prev[claveHabitos] ?? []),
-        { emoji: "✨", nombre: nuevoNombre.trim(), categoria: nuevaCategoria.trim() || (modulo === "microbiota" ? "Microbiota" : deporte) },
-      ],
-    }));
-    setNuevoNombre("");
-    setNuevaCategoria("");
-    setNuevoAbierto(false);
-  }
-
-  function guardarRecordatorio() {
-    if (!twin || !recHabito.trim()) return;
-    if ((recCanal === "whatsapp" || recCanal === "ambos") && !recTelefono.trim()) return;
+  function guardarAlerta(e: React.FormEvent) {
+    e.preventDefault();
+    if (!recTexto.trim() || !twin) return;
     const nuevo = {
       id: crypto.randomUUID(),
-      habito: recHabito.trim(),
+      habito: recTexto.trim(),
       frecuenciaDias: recFrecuencia,
       hora: recHora,
       canal: recCanal,
-      telefono: recTelefono.trim() || undefined,
     };
-    guardar({ ...twin, recordatorios: [...(twin.recordatorios ?? []), nuevo] });
-    setRecHabito("");
-    setRecFrecuencia(7);
-    setRecHora("09:00");
-    setRecCanal("email");
-    setRecTelefono("");
+    guardar({
+      ...twin,
+      recordatorios: [...(twin.recordatorios ?? []), nuevo],
+    });
+    setRecTexto("");
+    setRecGuardado(true);
+    setTimeout(() => setRecGuardado(false), 3000);
   }
 
-  function borrarRecordatorio(id: string) {
-    if (!twin) return;
-    guardar({ ...twin, recordatorios: (twin.recordatorios ?? []).filter((r) => r.id !== id) });
+  function guardarEvaluacion() {
+    setEvalGuardada(true);
+    setTimeout(() => setEvalGuardada(false), 3000);
   }
 
-  async function enviarAgenda() {
-    setEnviando(true);
-    const res = await enviarAgendaAlProfesional("profesional@example.com", agenda);
-    setEnviando(false);
-    setEnviado(res.simulado ? "Enviado (simulado — falta RESEND_API_KEY)" : "Agenda enviada a tu profesional ✓");
-  }
-
-  function cambiarModulo(m: Modulo) {
-    setModulo(m);
-    setSub("autoevaluacion");
-  }
-
-  const tabsModulo = (
-    <div className="flex gap-2">
-      {MODULOS.map((m) => (
-        <button
-          key={m.key}
-          onClick={() => cambiarModulo(m.key)}
-          className={"rounded-full px-4 py-2 text-sm font-semibold " + (modulo === m.key ? "bg-white text-black" : "bg-white/10 text-white/70")}
-        >
-          {m.label}
-        </button>
-      ))}
-    </div>
-  );
-
-  if (modulo === "constancia") {
-    return (
-      <div className="space-y-6">
-        {tabsModulo}
-        <div className="mt-glass p-6 text-sm text-white/50">Próximamente.</div>
-      </div>
-    );
-  }
+  const recordatorios = twin?.recordatorios ?? [
+    { id: "1", habito: "Práctica de Speaking diaria con Teacher MindTwin", frecuenciaDias: 1, hora: "09:00", canal: "email" },
+    { id: "2", habito: "Repaso semanal de vocabulario y notas fonéticas", frecuenciaDias: 7, hora: "19:00", canal: "whatsapp" },
+  ];
 
   return (
-    <div className="space-y-6">
-      {tabsModulo}
-
-      <p className="text-[10px] uppercase tracking-wide text-white/40">
-        Semana del {fechaHoy()} · {modulo === "deportes" && <>{deporte} · </>}Hábitos activos: {habitosActivos.length}
-      </p>
-
-      {modulo === "deportes" && (
-        <div>
-          <p className="mb-2 text-sm font-bold uppercase tracking-wide text-white">Disciplinas</p>
-          <div className="flex flex-wrap gap-2">
-            {DEPORTES.map((d) => {
-              const esOtros = d === "Otros";
-              const seleccionado = esOtros ? otroDeporteAbierto || (otroDeporteTexto && deporte === otroDeporteTexto) : deporte === d;
-              return (
-                <button
-                  key={d}
-                  onClick={() => {
-                    if (esOtros) {
-                      setOtroDeporteAbierto(true);
-                      return;
-                    }
-                    setOtroDeporteAbierto(false);
-                    setDeporte(d);
-                  }}
-                  className={"rounded-full px-3 py-1.5 text-xs font-semibold " + (seleccionado ? "bg-[#1abc9c]/20 text-[#1abc9c]" : "bg-white/5 text-white/50 hover:text-white")}
-                >
-                  {d}
-                </button>
-              );
-            })}
-          </div>
-          {otroDeporteAbierto && (
-            <div className="mt-2 flex items-center gap-2">
-              <input
-                autoFocus
-                value={otroDeporteTexto}
-                onChange={(e) => setOtroDeporteTexto(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && otroDeporteTexto.trim()) {
-                    setDeporte(otroDeporteTexto.trim());
-                    setOtroDeporteAbierto(false);
-                  }
-                }}
-                placeholder="Escribe tu deporte..."
-                className="rounded-full bg-white/5 px-3 py-1.5 text-xs text-white placeholder:text-white/30 focus:outline-none"
-              />
-              <button
-                onClick={() => {
-                  if (!otroDeporteTexto.trim()) return;
-                  setDeporte(otroDeporteTexto.trim());
-                  setOtroDeporteAbierto(false);
-                }}
-                disabled={!otroDeporteTexto.trim()}
-                className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-black disabled:opacity-40"
-              >
-                Usar →
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="grid gap-3">
-        {habitosActivos.map((h) => (
-          <div key={h.nombre} className="mt-glass p-4">
-            <p className="font-semibold">{h.emoji} {h.nombre}</p>
-            <p className="mt-1 text-xs text-white/40">{h.categoria}</p>
-            <div className="mt-2 flex gap-1 text-lg text-amber-400">★★★★★</div>
-          </div>
-        ))}
-
-        {nuevoAbierto ? (
-          <div className="mt-glass space-y-2 p-4">
-            <input
-              value={nuevoNombre}
-              onChange={(e) => setNuevoNombre(e.target.value)}
-              placeholder="Nombre del hábito o ejercicio"
-              className="w-full rounded-lg bg-white/5 px-3 py-2 text-sm placeholder:text-white/30 focus:outline-none"
-            />
-            <input
-              value={nuevaCategoria}
-              onChange={(e) => setNuevaCategoria(e.target.value)}
-              placeholder={`Categoría (ej. ${modulo === "microbiota" ? "Microbiota · Digestivo" : `${deporte} · Técnica`})`}
-              className="w-full rounded-lg bg-white/5 px-3 py-2 text-sm placeholder:text-white/30 focus:outline-none"
-            />
-            <div className="flex gap-2">
-              <button onClick={anadirHabito} disabled={!nuevoNombre.trim()} className="rounded-full bg-white px-4 py-1.5 text-xs font-bold text-black disabled:opacity-40">
-                Guardar hábito →
-              </button>
-              <button onClick={() => setNuevoAbierto(false)} className="rounded-full bg-white/5 px-4 py-1.5 text-xs text-white/60">
-                Cancelar
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button
-            onClick={() => setNuevoAbierto(true)}
-            className="mt-glass flex items-center justify-center gap-2 border border-dashed border-white/15 p-4 text-sm text-white/60 hover:text-white"
-          >
-            + Añadir {modulo === "microbiota" ? "hábito" : "ejercicio"}
-          </button>
-        )}
+    <div className="relative mx-auto max-w-4xl space-y-6 pb-12">
+      <div className="border-b border-white/10 pb-4">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-[#1abc9c]">
+          Lili Speak · Metodología & Constancia
+        </p>
+        <h1 className="font-playfair text-3xl font-extrabold text-white">
+          Mis Hábitos de Aprendizaje
+        </h1>
+        <p className="text-xs text-white/60 mt-1">
+          Seguimiento de práctica lingüística, autoevaluaciones semanales y recordatorios de estudio.
+        </p>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {subTabs.map((s) => (
+        {MODULOS.map((m) => (
           <button
-            key={s.key}
-            onClick={() => setSub(s.key)}
-            className={"rounded-full px-3 py-1.5 text-xs font-semibold " + (sub === s.key ? "bg-[#1abc9c]/20 text-[#1abc9c]" : "text-white/50 hover:text-white")}
+            key={m.key}
+            onClick={() => setModulo(m.key)}
+            className={`rounded-full px-4 py-2 text-xs font-bold transition-all ${
+              modulo === m.key
+                ? "bg-white text-black shadow-lg"
+                : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
+            }`}
           >
-            {s.label}
+            {m.label}
           </button>
         ))}
       </div>
 
-      {sub === "autoevaluacion" && (
-        <Autoevaluacion modo={modulo === "microbiota" ? "microbiota" : "deportes"} deporte={modulo === "deportes" ? deporte : undefined} />
-      )}
-
-      {sub === "estadisticas" && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="mt-glass p-4">
-              <p className="text-2xl font-bold text-[#1abc9c]">{modulo === "microbiota" ? (twin?.gut.gut_baseline_score ? Math.round(twin.gut.gut_baseline_score / 10) : 78) : 78}%</p>
-              <p className="text-xs text-white/40">Adherencia general</p>
-              <p className="mt-1 text-[10px] text-[#1abc9c]">↑ +6% vs sem ant.</p>
-            </div>
-            <div className="mt-glass p-4">
-              <p className="text-2xl font-bold text-[#1abc9c]">4</p>
-              <p className="text-xs text-white/40">Racha semanas</p>
-              <p className="mt-1 text-[10px] text-[#1abc9c]">↑ récord personal</p>
-            </div>
-            <div className="mt-glass p-4">
-              <p className="text-2xl font-bold text-[#1abc9c]">{habitosActivos.length}/{habitosActivos.length}</p>
-              <p className="text-xs text-white/40">Hábitos activos</p>
-              <p className="mt-1 text-[10px] text-white/40">sin cambio</p>
-            </div>
-          </div>
-
-          <div className="mt-glass p-5">
-            <p className="mb-3 text-[10px] font-bold uppercase tracking-wide text-white/40">Adherencia por hábito · últimas 4 semanas</p>
-            <div className="space-y-3">
-              {habitosActivos.map((h, i) => {
-                const pct = 60 + ((i * 13) % 35);
-                return (
-                  <div key={h.nombre}>
-                    <div className="mb-1 flex justify-between text-xs">
-                      <span className="text-white/70">{h.emoji} {h.nombre}</span>
-                      <span className="font-bold text-[#1abc9c]">{pct}%</span>
-                    </div>
-                    <div className="h-1.5 rounded bg-white/[0.06]">
-                      <div className="h-full rounded bg-gradient-to-r from-[#1abc9c] to-[#0ed4b5]" style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="mt-glass p-5">
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[#1abc9c]">🤖 MindTwin · Análisis semanal</p>
-            <p className="text-sm text-white/70">
-              {twin ? "Tu" : "Cuando completes tu EGO ID y GUT ID, tu"} adherencia a {habitosActivos[0]?.nombre.toLowerCase()} va bien encaminada
-              esta semana. {habitosActivos[1]?.nombre} sigue siendo tu punto débil — intenta priorizarlo los próximos días.
-              {gatillos.length > 0 && ` Tus gatillos activos (${gatillos.join(", ")}) están condicionando el resto de la semana.`}
-            </p>
-          </div>
+      {modulo !== "recordatorios" && (
+        <div className="flex gap-2 border-b border-white/10 pb-2 text-xs">
+          <button
+            onClick={() => setSubTab("habitos")}
+            className={`pb-1 font-semibold ${subTab === "habitos" ? "border-b-2 border-[#1abc9c] text-white" : "text-white/50 hover:text-white"}`}
+          >
+            📋 Hábitos Sugeridos
+          </button>
+          <button
+            onClick={() => setSubTab("evaluacion")}
+            className={`pb-1 font-semibold ${subTab === "evaluacion" ? "border-b-2 border-[#1abc9c] text-white" : "text-white/50 hover:text-white"}`}
+          >
+            📝 Autoevaluación Semanal
+          </button>
+          <button
+            onClick={() => setSubTab("estadisticas")}
+            className={`pb-1 font-semibold ${subTab === "estadisticas" ? "border-b-2 border-[#1abc9c] text-white" : "text-white/50 hover:text-white"}`}
+          >
+            📊 Estadísticas de Práctica
+          </button>
         </div>
       )}
 
-      {sub === "alertas" && (
-        <div className="space-y-3">
-          {gatillos.length === 0 ? (
-            <div className="mt-glass p-4 text-sm">
-              <span className="mr-2">✅</span>
-              <span className="font-semibold">Sin gatillos activos esta semana</span>
-              <p className="mt-1 text-xs text-white/50">Tu MindTwin avisará aquí en cuanto detecte un patrón (síntomas, falta de adherencia...).</p>
-            </div>
-          ) : (
-            gatillos.map((g) => (
-              <div key={g} className="mt-glass p-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <span>⚠️</span>
-                  <span className="font-semibold">Gatillo activo: {g}</span>
-                </div>
-                <p className="mt-1 text-xs text-white/50">
-                  Tu MindTwin ha detectado este patrón en tus últimas autoevaluaciones — revísalo con tu profesional si persiste.
-                </p>
-                <p className="mt-2 text-[10px] uppercase tracking-wide text-white/30">Detectado esta semana</p>
-              </div>
-            ))
-          )}
-
-          {(twin?.recordatorios ?? []).length > 0 && (
-            <div className="mt-glass p-4">
-              <p className="mb-3 text-[10px] font-bold uppercase tracking-wide text-white/40">Tus recordatorios</p>
-              <div className="space-y-2">
-                {(twin?.recordatorios ?? []).map((r) => (
-                  <div key={r.id} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-xs">
-                    <div>
-                      <span className="font-semibold">{r.habito}</span>
-                      <span className="ml-2 text-white/40">
-                        Cada {r.frecuenciaDias} día{r.frecuenciaDias > 1 ? "s" : ""} · {r.hora} · {CANALES.find((c) => c.key === r.canal)?.label}
-                      </span>
-                    </div>
-                    <button onClick={() => borrarRecordatorio(r.id)} className="text-white/40 hover:text-white">✕</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="mt-glass p-4">
-            <p className="mb-3 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/40">⚙️ Configurar alertas</p>
-
-            <label className="mb-1 block text-[10px] uppercase tracking-wide text-white/40">Hábito o recordatorio</label>
-            <input
-              value={recHabito}
-              onChange={(e) => setRecHabito(e.target.value)}
-              placeholder="Ej: Respiración matutina, Ducha fría..."
-              className="mb-4 w-full rounded-lg bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none"
-            />
-
-            <label className="mb-1.5 block text-[10px] uppercase tracking-wide text-white/40">Frecuencia</label>
-            <div className="mb-4 flex flex-wrap gap-1.5">
-              {FRECUENCIAS.map((d) => (
-                <button
-                  key={d}
-                  onClick={() => setRecFrecuencia(d)}
-                  className={
-                    "rounded-full border px-2.5 py-1 text-[11px] font-semibold " +
-                    (recFrecuencia === d
-                      ? "border-[#1abc9c] bg-[#1abc9c]/15 text-[#1abc9c]"
-                      : "border-white/10 bg-white/5 text-white/50")
-                  }
-                >
-                  Cada {d} día{d > 1 ? "s" : ""}
-                </button>
-              ))}
-            </div>
-
-            <label className="mb-1 block text-[10px] uppercase tracking-wide text-white/40">Hora de notificación</label>
-            <input
-              type="time"
-              value={recHora}
-              onChange={(e) => setRecHora(e.target.value)}
-              className="mb-4 w-full rounded-lg bg-white/5 px-3 py-2 text-sm text-white focus:outline-none"
-            />
-
-            <label className="mb-1.5 block text-[10px] uppercase tracking-wide text-white/40">Canal de notificación</label>
-            <div className="mb-4 flex gap-2">
-              {CANALES.map((c) => (
-                <button
-                  key={c.key}
-                  onClick={() => setRecCanal(c.key)}
-                  className={
-                    "flex-1 rounded-full border px-3 py-1.5 text-xs font-semibold " +
-                    (recCanal === c.key
-                      ? "border-[#1abc9c] bg-[#1abc9c]/15 text-[#1abc9c]"
-                      : "border-white/10 bg-white/5 text-white/50")
-                  }
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
-
-            {(recCanal === "whatsapp" || recCanal === "ambos") && (
-              <>
-                <label className="mb-1 block text-[10px] uppercase tracking-wide text-white/40">Tu WhatsApp</label>
+      {modulo === "recordatorios" ? (
+        <div className="space-y-6">
+          <form onSubmit={guardarAlerta} className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-white">Configurar Nuevo Recordatorio</h3>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-xs text-white/60 mb-1">Hábito o Tarea:</label>
                 <input
-                  type="tel"
-                  value={recTelefono}
-                  onChange={(e) => setRecTelefono(e.target.value)}
-                  placeholder="+34 600 000 000"
-                  className="mb-4 w-full rounded-lg bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none"
+                  type="text"
+                  value={recTexto}
+                  onChange={(e) => setRecTexto(e.target.value)}
+                  placeholder="ej: Practicar 15 min de Speaking"
+                  className="w-full rounded-lg border border-white/10 bg-white/5 p-2.5 text-xs text-white placeholder-white/40 focus:border-[#1abc9c] focus:outline-none"
+                  required
                 />
-              </>
-            )}
-
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => {
-                  setRecHabito("");
-                  setRecFrecuencia(7);
-                  setRecHora("09:00");
-                  setRecCanal("email");
-                  setRecTelefono("");
-                }}
-                className="rounded-full bg-white/5 px-4 py-2 text-xs text-white/60"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={guardarRecordatorio}
-                disabled={!recHabito.trim() || ((recCanal === "whatsapp" || recCanal === "ambos") && !recTelefono.trim())}
-                className="rounded-full bg-white px-4 py-2 text-xs font-bold text-black disabled:opacity-40"
-              >
-                Guardar recordatorio
-              </button>
+              </div>
+              <div>
+                <label className="block text-xs text-white/60 mb-1">Hora del aviso:</label>
+                <input
+                  type="time"
+                  value={recHora}
+                  onChange={(e) => setRecHora(e.target.value)}
+                  className="w-full rounded-lg border border-white/10 bg-white/5 p-2.5 text-xs text-white focus:border-[#1abc9c] focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-white/60 mb-1">Frecuencia:</label>
+                <select
+                  value={recFrecuencia}
+                  onChange={(e) => setRecFrecuencia(Number(e.target.value))}
+                  className="w-full rounded-lg border border-white/10 bg-[#151515] p-2.5 text-xs text-white focus:border-[#1abc9c] focus:outline-none"
+                >
+                  {FRECUENCIAS.map((f) => (
+                    <option key={f} value={f}>Cada {f === 1 ? "día" : `${f} días`}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-white/60 mb-1">Canal de notificación:</label>
+                <select
+                  value={recCanal}
+                  onChange={(e) => setRecCanal(e.target.value as "email" | "whatsapp")}
+                  className="w-full rounded-lg border border-white/10 bg-[#151515] p-2.5 text-xs text-white focus:border-[#1abc9c] focus:outline-none"
+                >
+                  <option value="email">Email</option>
+                  <option value="whatsapp">WhatsApp</option>
+                </select>
+              </div>
             </div>
-          </div>
 
-          <div className="mt-glass p-4">
-            <p className="mb-3 text-[10px] font-bold uppercase tracking-wide text-white/40">Definir hábitos activos (máx. 4)</p>
-            <div className="flex flex-wrap gap-2">
-              {habitosActivos.map((h) => (
-                <span key={h.nombre} className="rounded-full bg-white/10 px-3 py-1.5 text-xs">
-                  {h.emoji} {h.nombre} <span className="ml-1 text-white/40">×</span>
-                </span>
+            <button
+              type="submit"
+              className="rounded-lg bg-[#1abc9c] px-4 py-2 text-xs font-bold text-black hover:bg-[#16a085] transition-all shadow-md"
+            >
+              Guardar Recordatorio
+            </button>
+            {recGuardado && <span className="ml-3 text-xs text-emerald-400 font-bold">✓ Recordatorio guardado correctamente</span>}
+          </form>
+
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-white/50">Recordatorios Activos</h3>
+            <div className="divide-y divide-white/5 rounded-2xl border border-white/10 bg-black/40 p-4 backdrop-blur-xl">
+              {recordatorios.map((r, i) => (
+                <div key={r.id || i} className="py-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-white">{r.habito}</p>
+                    <p className="text-[11px] text-white/40">Hora: {r.hora} · Cada {r.frecuenciaDias === 1 ? "día" : `${r.frecuenciaDias} días`} · Canal: {r.canal}</p>
+                  </div>
+                  <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold text-emerald-300 border border-emerald-500/20">Activo</span>
+                </div>
               ))}
             </div>
-            <div className="mt-3 flex gap-2">
-              <button className="rounded-full bg-white/5 px-3 py-1.5 text-xs text-white/60">✏️ Texto</button>
-              <button className="rounded-full bg-white/5 px-3 py-1.5 text-xs text-white/60">🎙️ Voz</button>
-            </div>
           </div>
         </div>
-      )}
-
-      {sub === "recetas" && modulo === "microbiota" && (
-        <div className="space-y-3">
-          <p className="text-xs text-white/40">
-            Recetas ordenadas por cuántos nutrientes cubren para tus bacterias deficientes ({bacteriasDeficientes.join(", ") || "sin datos"}).
-          </p>
-          <div className="grid gap-3">
-            {recetasRecomendadas.map((r, i) => (
-              <div key={r.id} className="mt-glass p-4">
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold">{r.nombre}</p>
-                  <span className="rounded-full bg-[#1abc9c]/10 px-2 py-0.5 text-[10px] font-bold text-[#1abc9c]">
-                    {Math.max(70, 98 - i * 6)}% match
-                  </span>
-                </div>
-                <p className="mt-1 text-xs text-white/50">{r.tiempoMin} min · {r.porciones} ración(es)</p>
-                <p className="mt-2 text-sm text-white/60">{r.ingredientes.join(", ")}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {sub === "restaurantes" && modulo === "microbiota" && (
-        <div className="grid gap-3">
-          {RESTAURANTES.map((r) => (
-            <div key={r.id} className="mt-glass p-4">
+      ) : subTab === "habitos" ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {(HABITOS_SUGERIDOS[modulo] ?? []).map((h, idx) => (
+            <div key={idx} className="rounded-2xl border border-white/10 bg-black/40 p-5 backdrop-blur-xl">
               <div className="flex items-center justify-between">
-                <p className="font-semibold">{r.nombre}</p>
-                <span className="rounded-full bg-[#1abc9c]/10 px-3 py-1 text-xs text-[#1abc9c]">{r.tag}</span>
+                <h4 className="text-sm font-bold text-white">{h.nombre}</h4>
+                <span className="rounded-full bg-[#1abc9c]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#1abc9c]">
+                  {h.duracion}
+                </span>
               </div>
-              <p className="text-xs text-white/50">{r.ciudad}</p>
-              <p className="mt-2 text-xs text-white/40">🤖 MindTwin recomendado · Google Places</p>
+              <p className="mt-2 text-xs text-white/60 leading-relaxed">{h.desc}</p>
             </div>
           ))}
         </div>
-      )}
-
-      {sub === "planes" && modulo === "deportes" && (
-        <div className="space-y-3">
-          {habitosActivos.map((h) => (
-            <div key={h.nombre} className="mt-glass p-4">
-              <p className="font-semibold">{h.emoji} Plan · {h.nombre}</p>
-              <p className="mt-1 text-xs text-white/40">{h.categoria}</p>
-              <p className="mt-2 text-sm text-white/60">Tu MindTwin ajusta series, cargas y descanso semana a semana según tu autoevaluación.</p>
+      ) : subTab === "evaluacion" ? (
+        <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl space-y-5">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-white">Autoevaluación Semanal de Idiomas</h3>
+          <div>
+            <label className="block text-xs text-white/80 mb-2">Confianza y soltura al hablar en inglés esta semana (1 a 5):</label>
+            <input
+              type="range" min="1" max="5" value={confianzaSpeaking}
+              onChange={(e) => setConfianzaSpeaking(Number(e.target.value))}
+              className="w-full accent-[#1abc9c]"
+            />
+            <div className="flex justify-between text-[10px] text-white/40 mt-1">
+              <span>1 (Muy inseguro)</span>
+              <span className="font-bold text-[#1abc9c]">{confianzaSpeaking}/5</span>
+              <span>5 (Muy fluido)</span>
             </div>
-          ))}
-        </div>
-      )}
-
-      {sub === "agenda" && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-white/40">Ejercicio + receta + restaurante recomendado para cada día, por franja horaria.</p>
-            <button onClick={enviarAgenda} disabled={enviando} className="rounded-full bg-white px-4 py-1.5 text-xs font-bold text-black disabled:opacity-50">
-              {enviando ? "Enviando..." : "Enviar a mi profesional →"}
-            </button>
           </div>
-          {enviado && <p className="text-xs text-[#1abc9c]">{enviado}</p>}
-          <div className="grid gap-3">
-            {agenda.map((item, i) => {
-              const horaMomento = { mañana: "08:00", tarde: "17:00", noche: "21:00" }[item.momento];
-              return (
-                <div key={i} className="mt-glass p-4 text-sm">
-                  <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                    <span className="font-bold text-white/80">{item.dia.toUpperCase()}</span>
-                    <span className="text-[10px] uppercase text-[#1abc9c]">{item.tipo}</span>
-                  </div>
-                  <div className="mt-2 space-y-2">
-                    <div className="flex items-start gap-2">
-                      <span>🏋️</span>
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wide text-white/40">{horaMomento} · {item.momento}</p>
-                        <p className="text-white/70">{item.ejercicio}</p>
-                      </div>
-                    </div>
-                    {item.receta && (
-                      <div className="flex items-start gap-2">
-                        <span>🍽️</span>
-                        <p className="text-white/60">{item.receta.nombre}</p>
-                      </div>
-                    )}
-                    {item.restaurante && (
-                      <div className="flex items-start gap-2">
-                        <span>📍</span>
-                        <p className="text-white/60">Si sales fuera: {item.restaurante.nombre} ({item.restaurante.ciudad})</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+
+          <div>
+            <label className="block text-xs text-white/80 mb-2">Adherencia al plan de estudio (días practicados esta semana):</label>
+            <input
+              type="range" min="1" max="7" value={adherenciaSemanal}
+              onChange={(e) => setAdherenciaSemanal(Number(e.target.value))}
+              className="w-full accent-[#1abc9c]"
+            />
+            <div className="flex justify-between text-[10px] text-white/40 mt-1">
+              <span>1 día</span>
+              <span className="font-bold text-[#1abc9c]">{adherenciaSemanal} días / semana</span>
+              <span>7 días</span>
+            </div>
+          </div>
+
+          <button
+            onClick={guardarEvaluacion}
+            className="rounded-lg bg-[#1abc9c] px-4 py-2 text-xs font-bold text-black hover:bg-[#16a085] transition-all"
+          >
+            Guardar Autoevaluación
+          </button>
+          {evalGuardada && <span className="ml-3 text-xs text-emerald-400 font-bold">✓ Calibración semanal actualizada</span>}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl space-y-4">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-white">Evolución de Práctica Conversacional</h3>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="rounded-xl border border-white/5 bg-white/5 p-4">
+              <span className="text-[10px] text-white/40 uppercase">Horas este mes</span>
+              <p className="text-2xl font-extrabold text-[#1abc9c] mt-1">12.5 h</p>
+            </div>
+            <div className="rounded-xl border border-white/5 bg-white/5 p-4">
+              <span className="text-[10px] text-white/40 uppercase">Sesiones con Twin</span>
+              <p className="text-2xl font-extrabold text-white mt-1">24</p>
+            </div>
+            <div className="rounded-xl border border-white/5 bg-white/5 p-4">
+              <span className="text-[10px] text-white/40 uppercase">Vocabulario fijado</span>
+              <p className="text-2xl font-extrabold text-emerald-400 mt-1">+140</p>
+            </div>
           </div>
         </div>
       )}

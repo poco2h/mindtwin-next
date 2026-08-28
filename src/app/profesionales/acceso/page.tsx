@@ -12,13 +12,12 @@ function AccesoForm() {
   const redirect = searchParams.get("redirect") ?? "/profesionales";
   const supabase = getSupabaseBrowser();
 
-  const [modo, setModo] = useState<"login" | "alta" | "reset">("login");
+  const [modo, setModo] = useState<"login" | "alta">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [avisoAlta, setAvisoAlta] = useState<string | null>(null);
-  const [avisoReset, setAvisoReset] = useState<string | null>(null);
 
   async function entrar() {
     if (!supabase) return;
@@ -32,22 +31,6 @@ function AccesoForm() {
     }
     router.push(redirect);
     router.refresh();
-  }
-
-  async function solicitarReset() {
-    if (!supabase) return;
-    setCargando(true);
-    setError(null);
-    setAvisoReset(null);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?redirect=/profesionales/cuenta`,
-    });
-    setCargando(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    setAvisoReset("Si ese email tiene una cuenta, te hemos enviado un enlace para restablecer la contraseña.");
   }
 
   async function solicitarAlta() {
@@ -84,9 +67,9 @@ function AccesoForm() {
         </Link>
         <h1 className="mt-4 font-serif text-2xl">Acceso para profesionales</h1>
         <p className="mt-2 text-sm text-[rgb(99,99,99)]">
-          {modo === "login" && "Entra con el email al que te hemos invitado y tu contraseña."}
-          {modo === "alta" && "¿No has recibido invitación? Date de alta con tu email — te asignamos una contraseña que podrás cambiar después."}
-          {modo === "reset" && "Escribe tu email y te enviamos un enlace para restablecer la contraseña."}
+          {modo === "login"
+            ? "Entra con el email al que te hemos invitado y tu contraseña."
+            : "¿No has recibido invitación? Date de alta con tu email — te asignamos una contraseña que podrás cambiar después."}
         </p>
 
         {!supabase ? (
@@ -116,7 +99,7 @@ function AccesoForm() {
               </label>
             )}
 
-            {modo === "login" && (
+            {modo === "login" ? (
               <button
                 onClick={entrar}
                 disabled={!email || !password || cargando}
@@ -124,8 +107,7 @@ function AccesoForm() {
               >
                 {cargando ? "Entrando..." : "Entrar →"}
               </button>
-            )}
-            {modo === "alta" && (
+            ) : (
               <button
                 onClick={solicitarAlta}
                 disabled={!email || cargando}
@@ -134,40 +116,16 @@ function AccesoForm() {
                 {cargando ? "Creando acceso..." : "Crear mi acceso →"}
               </button>
             )}
-            {modo === "reset" && (
-              <button
-                onClick={solicitarReset}
-                disabled={!email || cargando}
-                className="w-full rounded-full bg-black px-6 py-3 text-sm font-semibold text-white disabled:opacity-40"
-              >
-                {cargando ? "Enviando..." : "Enviarme el enlace →"}
-              </button>
-            )}
 
             {error && <p className="text-xs text-red-600">{error}</p>}
             {avisoAlta && <p className="text-xs text-[#0e6b57]">{avisoAlta}</p>}
-            {avisoReset && <p className="text-xs text-[#0e6b57]">{avisoReset}</p>}
 
-            {modo === "login" && (
-              <button
-                type="button"
-                onClick={() => {
-                  setModo("reset");
-                  setError(null);
-                  setAvisoReset(null);
-                }}
-                className="block text-xs text-[rgb(99,99,99)] underline"
-              >
-                ¿Has olvidado tu contraseña?
-              </button>
-            )}
             <button
               type="button"
               onClick={() => {
                 setModo(modo === "login" ? "alta" : "login");
                 setError(null);
                 setAvisoAlta(null);
-                setAvisoReset(null);
               }}
               className="text-xs text-[rgb(99,99,99)] underline"
             >

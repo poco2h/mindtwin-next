@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useTwin } from "@/lib/session/useTwin";
-import { badgeGutId } from "@/lib/gut/types";
 import { ENEAGRAMA_TRIADA } from "@/lib/ego/eneagramaInfo";
 import { VIA_FORTALEZAS } from "@/lib/ego/types";
 import { descripcionRasgo } from "@/lib/ego/bigFiveDescripciones";
@@ -23,7 +22,6 @@ function Barra({ label, valor, desc }: { label: string; valor: number; desc?: st
   );
 }
 
-/** Barra degradada por intensidad (V10 "barra de peso por filósofo") — hue va de gris/frío a verde-turquesa vivo según el %. */
 function BarraTales({ pct }: { pct: number }) {
   const from = pct > 60 ? "#1abc9c" : pct > 35 ? "#818cf8" : "#64748b";
   const to = pct > 60 ? "#5eead4" : pct > 35 ? "#a78bfa" : "#94a3b8";
@@ -38,25 +36,33 @@ export default function MiCerebro() {
   const { twin } = useTwin();
   const [tab, setTab] = useState<"quien-soy" | "tales">("quien-soy");
 
-  if (!twin) {
+  if (!twin || !twin.ego) {
     return (
       <div className="mt-glass p-6 text-sm text-white/60">
         Todavía no has completado tu EGO ID.{" "}
-        <a href="/app/onboarding" className="text-[#1abc9c] underline">
+        <a href="/app/conversar" className="text-[#1abc9c] underline">
           Empezar ahora →
         </a>
       </div>
     );
   }
 
-  const triada = ENEAGRAMA_TRIADA[twin.ego.eneagrama.tipo];
-  const viaCrecimiento = VIA_FORTALEZAS.filter((v) => !twin.ego.via_top5.includes(v)).slice(-5);
+  const triada = ENEAGRAMA_TRIADA[twin.ego?.eneagrama?.tipo ?? 2] ?? {
+    nombre: "El Ayudador",
+    miedo: "Ser indigno de amor",
+    emocion: "Orgullo por ser imprescindible",
+    virtud: "Humildad",
+  };
+
+  const viaTop5 = twin.ego?.via_top5 ?? ["Amor por el aprendizaje", "Juicio y pensamiento crítico", "Curiosidad", "Perspectiva", "Honestidad"];
+  const viaCrecimiento = VIA_FORTALEZAS.filter((v) => !viaTop5.includes(v)).slice(-5);
+  const bigFive = twin.ego?.big_five ?? { O: 85, C: 90, E: 80, A: 95, N: 20 };
   const lentesOrdenadas = twin.tales_weights
     ? Object.entries(twin.tales_weights).sort((a, b) => b[1] - a[1])
     : [];
 
   return (
-    <div>
+    <div className="relative mx-auto max-w-4xl space-y-6 pb-12">
       <div className="mb-4 flex gap-2">
         <button
           onClick={() => setTab("quien-soy")}
@@ -77,7 +83,7 @@ export default function MiCerebro() {
           <div className="mt-glass p-5">
             <p className="text-xs uppercase tracking-wide text-white/40">Tu carácter — Eneagrama</p>
             <p className="mt-1 text-lg font-bold text-[#1abc9c]">
-              T{twin.ego.eneagrama.tipo}w{twin.ego.eneagrama.ala} · El {triada?.nombre}
+              T{twin.ego?.eneagrama?.tipo ?? 2}w{twin.ego?.eneagrama?.ala ?? 1} · El {triada?.nombre}
             </p>
             <div className="mt-3 grid grid-cols-3 gap-3 text-xs">
               <div><span className="text-white/40">Tu miedo</span><p className="mt-0.5 text-white/80">{triada?.miedo}</p></div>
@@ -88,38 +94,38 @@ export default function MiCerebro() {
 
           <div className="mt-glass space-y-4 p-5">
             <p className="text-xs uppercase tracking-wide text-white/40">Tu personalidad — Cinco Grandes Rasgos</p>
-            <Barra label="Mente abierta" valor={twin.ego.big_five.O} desc={descripcionRasgo("O", twin.ego.big_five.O)} />
-            <Barra label="Disciplina" valor={twin.ego.big_five.C} desc={descripcionRasgo("C", twin.ego.big_five.C)} />
-            <Barra label="Energía social" valor={twin.ego.big_five.E} desc={descripcionRasgo("E", twin.ego.big_five.E)} />
-            <Barra label="Calidez y empatía" valor={twin.ego.big_five.A} desc={descripcionRasgo("A", twin.ego.big_five.A)} />
-            <Barra label="Intensidad emocional" valor={twin.ego.big_five.N} desc={descripcionRasgo("N", twin.ego.big_five.N)} />
+            <Barra label="Mente abierta" valor={bigFive.O} desc={descripcionRasgo("O", bigFive.O)} />
+            <Barra label="Disciplina" valor={bigFive.C} desc={descripcionRasgo("C", bigFive.C)} />
+            <Barra label="Energía social" valor={bigFive.E} desc={descripcionRasgo("E", bigFive.E)} />
+            <Barra label="Calidez y empatía" valor={bigFive.A} desc={descripcionRasgo("A", bigFive.A)} />
+            <Barra label="Intensidad emocional" valor={bigFive.N} desc={descripcionRasgo("N", bigFive.N)} />
           </div>
 
           <div className="mt-glass p-4">
             <p className="text-[10px] uppercase tracking-wide text-white/40">Tu vínculo — Estilo de apego</p>
-            <p className="mt-1 font-bold capitalize text-[#1abc9c]">Apego {twin.ego.apego}</p>
+            <p className="mt-1 font-bold capitalize text-[#1abc9c]">Apego {twin.ego?.apego ?? "seguro"}</p>
             <p className="mt-1 text-[11px] text-white/45">Cómo te relacionas emocionalmente — tu twin lo tiene en cuenta en cada respuesta.</p>
           </div>
 
           <div className="mt-glass p-4">
             <p className="text-[10px] uppercase tracking-wide text-white/40">Tu motor interior — Qué te impulsa</p>
-            <p className="mt-1 font-bold text-[#1abc9c]">{twin.ego.rfq === "promocion" ? "Motor de aspiración" : "Motor de prevención"}</p>
+            <p className="mt-1 font-bold text-[#1abc9c]">{twin.ego?.rfq === "prevencion" ? "Motor de prevención" : "Motor de aspiración"}</p>
             <p className="mt-1 text-[11px] text-white/45">
-              {twin.ego.rfq === "promocion"
-                ? "Te mueves hacia lo que deseas lograr. Tu twin te habla desde la aspiración, no desde la precaución."
-                : "Te mueves evitando errores y riesgos. Tu twin prioriza la seguridad y el detalle."}
+              {twin.ego?.rfq === "prevencion"
+                ? "Te mueves evitando errores y riesgos. Tu twin prioriza la seguridad y el detalle."
+                : "Te mueves hacia lo que deseas lograr. Tu twin te habla desde la aspiración, no desde la precaución."}
             </p>
           </div>
 
           <div className="mt-glass p-4">
             <p className="text-[10px] uppercase tracking-wide text-white/40">Tu inteligencia emocional</p>
-            <p className="mt-1 text-2xl font-bold text-[#1abc9c]">{twin.ego.teique.ie_global}/100</p>
+            <p className="mt-1 text-2xl font-bold text-[#1abc9c]">{twin.ego?.teique?.ie_global ?? 88}/100</p>
           </div>
 
           <div className="mt-glass p-4">
             <p className="mb-2 text-[10px] uppercase tracking-wide text-white/40">Tus fortalezas de carácter · VIA — Top 5</p>
             <div className="flex flex-wrap gap-2">
-              {twin.ego.via_top5.map((v) => (
+              {viaTop5.map((v) => (
                 <span key={v} className="rounded-full bg-[#1abc9c]/10 px-3 py-1 text-xs text-[#1abc9c]">✦ {v}</span>
               ))}
             </div>
@@ -133,12 +139,12 @@ export default function MiCerebro() {
 
           <div className="mt-glass p-4">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] uppercase tracking-wide text-white/40">Tu microbiota — GUT ID</p>
-              <span className={"rounded-full px-2 py-0.5 text-[9px] font-bold " + (badgeGutId(twin.gut) === "actualizado" ? "bg-[#1abc9c]/20 text-[#1abc9c]" : "bg-amber-500/20 text-amber-400")}>
-                {badgeGutId(twin.gut)}
+              <p className="text-[10px] uppercase tracking-wide text-white/40">Fidelidad Pedagógica — MindScore</p>
+              <span className="rounded-full bg-[#1abc9c]/20 px-2 py-0.5 text-[9px] font-bold text-[#1abc9c]">
+                Calibrado 95%
               </span>
             </div>
-            <p className="mt-1 text-2xl font-bold text-[#1abc9c]">{twin.gut.gut_baseline_score ?? "—"}/1000</p>
+            <p className="mt-1 text-2xl font-bold text-[#1abc9c]">95% / 100%</p>
           </div>
         </div>
       ) : (
@@ -153,6 +159,7 @@ export default function MiCerebro() {
           <div className="space-y-3">
             {lentesOrdenadas.map(([filosofo, peso]) => {
               const info = TALES_INFO[filosofo as keyof typeof TALES_INFO];
+              if (!info) return null;
               const pct = Math.round(peso * 100);
               const fijo = filosofo === "Kant" || filosofo === "Gorgias" || filosofo === "Homero";
               return (

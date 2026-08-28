@@ -54,10 +54,7 @@ CREATE TABLE IF NOT EXISTS twin_profiles (
   avatar_soul_id VARCHAR,                     -- Para vídeos RRSS (V3/V4)
   avatar_replica_id VARCHAR,                  -- Para videoconferencia RT (V1)
   voice_id VARCHAR,                           -- Voz clonada TTS
-  heygen_avatar_id VARCHAR,                   -- Digital Twin HeyGen (entrenado a mano en heygen.com), añadida 2026-08-25
-  heygen_voice_id VARCHAR,                    -- Voz del catálogo HeyGen (no ElevenLabs), añadida 2026-08-25
   fidelity_pct NUMERIC(4,1) DEFAULT 65.0,
-  demo_twin JSONB DEFAULT '{}'::jsonb,         -- blob DemoTwin completo por owner (Mis Fuentes/Mi Cerebro/Onboarding), añadida 2026-08-20 vía SQL Editor
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -202,16 +199,6 @@ CREATE TABLE IF NOT EXISTS receta_nutriente (
   PRIMARY KEY (receta_id, nutriente_id)
 );
 
--- 13.5 VÍDEOS GENERADOS (galería persistente — antes se perdían al recargar)
-CREATE TABLE IF NOT EXISTS generated_videos (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  owner_id UUID NOT NULL REFERENCES owners(id) ON DELETE CASCADE,
-  variante TEXT NOT NULL, -- v3 (hablar a cámara) / v4 (cuerpo en acción) / combo / heygen
-  guion TEXT,
-  video_url TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
 -- 14. ROW LEVEL SECURITY (RLS) — REGLAS ESTRICTAS DE PRIVACIDAD
 ALTER TABLE owners ENABLE ROW LEVEL SECURITY;
 ALTER TABLE followers ENABLE ROW LEVEL SECURITY;
@@ -223,4 +210,3 @@ ALTER TABLE session_billing ENABLE ROW LEVEL SECURITY;
 ALTER TABLE habits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE habit_evaluations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE agenda_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE generated_videos ENABLE ROW LEVEL SECURITY;

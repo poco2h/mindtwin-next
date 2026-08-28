@@ -1,12 +1,12 @@
-import { buscarEnCache } from "@/lib/conversar/cache";
+import { buscarEnCache } from "./cache";
 import {
   aplicaGuardrailPrecio,
   esPreguntaDePrecio,
   respuestaBloqueadaPorPrecio,
   type Role,
-} from "@/lib/conversar/guardrails";
-import { buscarMencionMarca } from "@/lib/conversar/marcas";
-import type { Marca } from "@/lib/marcas/types";
+} from "./guardrails";
+import { buscarMencionMarca } from "./marcas";
+import type { Marca } from "../marcas/types";
 import {
   aplicarExtraccion,
   avanzarProgreso,
@@ -15,12 +15,12 @@ import {
   instruccionOnboarding,
   twinVacio,
   type ContextoOnboarding,
-} from "@/lib/conversar/onboarding";
-import { leerTwinServer, guardarTwinServer } from "@/lib/session/twinProfileServer";
-import { resolveFollowerUuid } from "@/lib/demo/identities";
-import { bloqueTalesPrompt } from "@/lib/conversar/tales";
-import { bloqueContextoFollower } from "@/lib/conversar/followerContext";
-import { llamarGemini, type TurnoHistorial } from "@/lib/conversar/gemini";
+} from "./onboarding";
+import { leerTwinServer, guardarTwinServer } from "../session/twinProfileServer";
+import { resolveFollowerUuid } from "../demo/identities";
+import { bloqueTalesPrompt } from "./tales";
+import { bloqueContextoFollower } from "./followerContext";
+import { llamarGemini, type TurnoHistorial } from "./gemini";
 
 export type { TurnoHistorial };
 
@@ -32,28 +32,48 @@ export type ConversarInput = {
   followerId?: string;
   marcas?: Marca[];
   marcaYaMencionada?: boolean;
-  sportsContextResumen?: string; // solo Lili Celebs (V10 §7.3)
-  historial?: TurnoHistorial[]; // turnos previos de la conversación (sin el mensaje actual)
+  sportsContextResumen?: string;
+  historial?: TurnoHistorial[];
+  idiomaEnsenanza?: string;
+  nivelAlumno?: string;
 };
 
 export type ConversarOutput = {
   respuesta: string;
   capa: "n2-guardrail" | "n1-cache" | "n3-gemini" | "n3-onboarding" | "n3-fallback";
-  marcaMencionada?: string; // id de la marca, si se mencionó en esta respuesta
+  marcaMencionada?: string;
+  correcciones_inline?: Array<{ original: string; correccion: string; explicacion: string }>;
+  nota_fonetica_ipa?: string;
+  traduccion_es?: string;
+  sugerencia_siguiente?: string;
+  indicador_ia?: string;
 };
 
-const REDIRECCION_TEMA = (ownerName: string) =>
-  `Si el usuario intenta hablar de temas totalmente ajenos a tu especialidad como profesional del bienestar (actualidad, ` +
-  `política, resultados deportivos de terceros, etc.), redirígelo con amabilidad de vuelta a tu área, en el estilo de: ` +
-  `"Mi especialidad es [tu área]. ¿Quieres que hablemos de [tema relevante]?". No lo hagas si lo que pregunta sí tiene ` +
-  `relación, aunque sea indirecta, con bienestar, entrenamiento, nutrición o cómo se siente.`;
+const EU_AI_DISCLAIMER = "Lili Speak Teacher MindTwin · AI Generated Content (EU AI Act Art. 50)";
 
-function systemInstructionBase(ownerName: string, sportsContextResumen?: string, talesBloque?: string): string {
-  const bloqueSports = sportsContextResumen ? ` Contexto deportivo actual: ${sportsContextResumen}` : "";
+function systemInstructionOwner(ownerName: string, talesBloque?: string): string {
   const bloqueTales = talesBloque ? `\n\n${talesBloque}` : "";
   return (
-    `Eres el MindTwin de ${ownerName}, un profesional del bienestar. Responde en español, en 2-3 frases, ` +
-    `con tono cercano y profesional. Nunca menciones precios ni tarifas.${bloqueSports}${bloqueTales}\n\n${REDIRECCION_TEMA(ownerName)}`
+    `Eres el Asistente de Configuración y Entrenamiento del Teacher MindTwin de ${ownerName}. ` +
+    `Tu objetivo es ayudar al profesor a calibrar su gemelo docente en español: definir su metodología de enseñanza, niveles MCER que imparte (A1-C2), estilo de corrección, fonética y materiales recomendados. ` +
+    `Habla en español con tono cercano, respetuoso y profesional.${bloqueTales}`
+  );
+}
+
+function systemInstructionFollower(
+  ownerName: string,
+  idiomaEnsenanza: string = "inglés",
+  nivelAlumno: string = "B1/B2",
+  talesBloque?: string
+): string {
+  const bloqueTales = talesBloque ? `\n\n${talesBloque}` : "";
+  return (
+    `Eres el Teacher MindTwin de ${ownerName}, profesor y mentor de ${idiomaEnsenanza} en Lili Speak. ` +
+    `Tu misión es enseñar, guiar y conversar con tu alumno (nivel aproximado: ${nivelAlumno}) con la máxima calidez y empatía.\n` +
+    `DIRECTRICES DOCENTES:\n` +
+    `1. Responde de forma conversacional, cercana y humana (2-4 frases).\n` +
+    `2. Habla principalmente en ${idiomaEnsenanza} para propiciar la inmersión, usando español solo cuando sea necesario para explicar matices gramaticales o fonéticos.\n` +
+    `3. Si el alumno comete algún error, corrígelo con amabilidad constructiva en el bloque de correcciones.${bloqueTales}`
   );
 }
 
@@ -63,24 +83,11 @@ function conMencionMarca(
   marcas: Marca[] | undefined,
   yaMencionada: boolean | undefined
 ): { respuesta: string; marcaMencionada?: string } {
-  const mencion = buscarMencionMarca(mensaje, marcas ?? [], !!yaMencionada);
+  const mencion = buscarMencionMarca(mensaje, marcas ?? [], !yaMencionada);
   if (!mencion) return { respuesta: respuestaBase };
   return { respuesta: respuestaBase + mencion.texto, marcaMencionada: mencion.marca.id };
 }
 
-/**
- * Turno de onboarding conversacional (V10 §5.1 R1 para Owner; landing PASO
- * 03 para Follower): mientras la persona no haya terminado sus sesiones
- * (S1-S4 Owner, S1-S3 Follower), cada mensaje suyo alimenta la sesión activa
- * en vez de un chat libre — se le pregunta, en una sola frase natural por
- * grupo de rasgos, y la respuesta se traduce a los mismos ítems Likert 1-5
- * que ya usa el flujo determinista de /app/onboarding (src/lib/ego, sin
- * cambios en el scoring). Bloquea implícitamente el chat libre: mientras
- * esta función decida seguir en onboarding, nunca se llega al chat genérico.
- *
- * followerUuid presente = turno del Follower (su propia fila en
- * twin_profiles); ausente = turno del Owner.
- */
 async function turnoOnboarding(
   input: ConversarInput,
   contexto: ContextoOnboarding,
@@ -91,83 +98,162 @@ async function turnoOnboarding(
 
   const twin = await leerTwinServer(ownerId, followerUuid);
   const turno = estadoTurno(twin, contexto);
-  if (!turno) return null; // onboarding ya completo — cae al chat libre
+  if (!turno) return null;
 
   const instruccion = instruccionOnboarding(turno.sesion, turno.pasoActual, turno.pasoSiguiente);
-  const systemInstructionText = `${systemInstructionBase(ownerName)}\n\n${instruccion}`;
+  const systemInstructionText = contexto === "owner"
+    ? `${systemInstructionOwner(ownerName)}\n\n${instruccion}`
+    : `${systemInstructionFollower(ownerName)}\n\n${instruccion}`;
+
   const schema = esquemaExtraccion(turno.pasoActual);
-
   const generada = await llamarGemini(systemInstructionText, mensaje, historial, schema);
+  if (!generada) return null;
 
-  if (!generada || "errorApiKeyFalta" in generada) {
-    const mensajeError =
-      generada && "errorApiKeyFalta" in generada
-        ? "Ahora mismo no puedo generar una respuesta completa (falta configurar GEMINI_API_KEY), pero he registrado tu mensaje."
-        : "Ahora mismo no puedo generar una respuesta completa (fallo temporal al conectar con el modelo), pero he registrado tu mensaje.";
-    return { respuesta: mensajeError, capa: "n3-fallback" };
+  if ("errorApiKeyFalta" in generada) {
+    return {
+      respuesta: `${ownerName} está terminando de calibrar su Teacher MindTwin. Prueba de nuevo en unos minutos.`,
+      capa: "n3-fallback",
+      indicador_ia: EU_AI_DISCLAIMER,
+    };
   }
 
-  let twinActualizado = twin ?? twinVacio();
-  if (turno.pasoActual && generada.extraccion) {
-    twinActualizado = aplicarExtraccion(twinActualizado, turno.pasoActual, generada.extraccion);
+  const { texto, extraccion } = generada;
+  if (extraccion) {
+    const actualizado = aplicarExtraccion(twin, turno.pasoActual, extraccion);
+    const completadoPaso = avanzarProgreso(actualizado, turno.sesion, turno.pasoActual);
+    await guardarTwinServer(completadoPaso, ownerId, followerUuid);
   }
-  twinActualizado = avanzarProgreso(twinActualizado, turno.sesion, contexto);
 
-  await guardarTwinServer(ownerId, twinActualizado, followerUuid);
-
-  return { respuesta: generada.texto, capa: "n3-onboarding" };
+  return {
+    respuesta: texto,
+    capa: "n3-onboarding",
+    indicador_ia: EU_AI_DISCLAIMER,
+  };
 }
 
-/**
- * Orquestador de las 3 capas de Conversar (V10 §4.1): N2 determinista →
- * N1 caché → N3 Gemini. El guardrail de precios para followers se evalúa
- * ANTES de tocar cache/LLM (evita coste y evita que una respuesta cacheada
- * o generada se filtre) y se reaplica después como red de seguridad. La
- * mención de marcas (V10 §6.2) se evalúa después, máx. 1 vez por sesión.
- * Antes de cualquiera de las 3 capas, si el Owner todavía no ha terminado
- * sus sesiones iniciales (V10 §5.1 R1), el turno se desvía al onboarding
- * conversacional — el caché no aplica ahí porque cada turno depende del
- * progreso guardado, no solo del texto del mensaje.
- */
 export async function responderConversar(input: ConversarInput): Promise<ConversarOutput> {
-  const { mensaje, role, ownerName, ownerId, followerId, marcas, marcaYaMencionada, sportsContextResumen, historial } = input;
+  const {
+    mensaje,
+    role,
+    ownerName,
+    ownerId,
+    followerId,
+    marcas,
+    marcaYaMencionada,
+    historial,
+    idiomaEnsenanza = "inglés",
+    nivelAlumno = "B1/B2",
+  } = input;
 
-  if (role === "owner" && ownerId) {
-    const resultado = await turnoOnboarding(input, "owner");
-    if (resultado) return { ...conMencionMarca(resultado.respuesta, mensaje, marcas, marcaYaMencionada), capa: resultado.capa };
-  }
-
-  let followerUuid: string | null = null;
-  if (role === "follower" && ownerId && followerId) {
-    followerUuid = await resolveFollowerUuid(followerId, ownerId);
-    if (followerUuid) {
-      const resultado = await turnoOnboarding(input, "follower", followerUuid);
-      if (resultado) return { ...conMencionMarca(resultado.respuesta, mensaje, marcas, marcaYaMencionada), capa: resultado.capa };
-    }
-  }
-
-  if (role === "follower" && esPreguntaDePrecio(mensaje)) {
-    return { respuesta: respuestaBloqueadaPorPrecio(ownerName), capa: "n2-guardrail" };
+  if (aplicaGuardrailPrecio(role) && esPreguntaDePrecio(mensaje)) {
+    return {
+      respuesta: respuestaBloqueadaPorPrecio(ownerName),
+      capa: "n2-guardrail",
+      indicador_ia: EU_AI_DISCLAIMER,
+    };
   }
 
   const cacheHit = buscarEnCache(mensaje);
-  if (cacheHit) {
-    const base = aplicaGuardrailPrecio(role, mensaje, cacheHit, ownerName);
-    return { ...conMencionMarca(base, mensaje, marcas, marcaYaMencionada), capa: "n1-cache" };
+  if (cacheHit && role === "follower") {
+    const { respuesta: respuestaConMarca, marcaMencionada } = conMencionMarca(
+      cacheHit.respuesta,
+      mensaje,
+      marcas,
+      marcaYaMencionada
+    );
+    return {
+      respuesta: respuestaConMarca,
+      capa: "n1-cache",
+      marcaMencionada,
+      indicador_ia: EU_AI_DISCLAIMER,
+    };
   }
 
-  const twinOwner = ownerId ? await leerTwinServer(ownerId) : null;
-  const twinFollower = followerUuid ? await leerTwinServer(ownerId!, followerUuid) : null;
-  const talesBloque = [bloqueTalesPrompt(twinOwner, mensaje), bloqueContextoFollower(twinFollower)].filter(Boolean).join("\n\n");
-  const generada = await llamarGemini(systemInstructionBase(ownerName, sportsContextResumen, talesBloque), mensaje, historial, null);
-  if (generada && "texto" in generada) {
-    const base = aplicaGuardrailPrecio(role, mensaje, generada.texto, ownerName);
-    return { ...conMencionMarca(base, mensaje, marcas, marcaYaMencionada), capa: "n3-gemini" };
+  const followerUuid = followerId ? resolveFollowerUuid(followerId) : undefined;
+  const contexto: ContextoOnboarding = role === "owner" ? "owner" : "follower";
+  const onboardingOutput = await turnoOnboarding(input, contexto, followerUuid);
+  if (onboardingOutput) return onboardingOutput;
+
+  const twin = ownerId ? await leerTwinServer(ownerId) : null;
+  const talesBloque = bloqueTalesPrompt(twin, mensaje);
+
+  if (role === "owner") {
+    const promptOwner = `${systemInstructionOwner(ownerName, talesBloque)}\nEres el clon en entrenamiento de ${ownerName}. Conversa con el profesor sobre su metodología pedagógica, sus preferencias de enseñanza y la preparación de sus clases. Responde en español con profesionalismo.`;
+
+    try {
+      const res = await llamarGemini(promptOwner, mensaje, historial, null);
+      if (res && "texto" in res) {
+        return {
+          respuesta: res.texto,
+          capa: "n3-gemini",
+          indicador_ia: EU_AI_DISCLAIMER,
+        };
+      }
+    } catch (err) {
+      console.error("[Conversar Owner] Error:", err);
+    }
+
+    return {
+      respuesta: `Hola ${ownerName}. Como tu Teacher MindTwin, estoy listo para calibrar nuevos aspectos de tu metodología o packs didácticos. ¿Qué te gustaría ajustar hoy?`,
+      capa: "n3-fallback",
+      indicador_ia: EU_AI_DISCLAIMER,
+    };
   }
 
-  const fallback =
-    generada && "errorApiKeyFalta" in generada
-      ? "Ahora mismo no puedo generar una respuesta completa (falta configurar GEMINI_API_KEY), pero he registrado tu mensaje."
-      : "Ahora mismo no puedo generar una respuesta completa (fallo temporal al conectar con el modelo), pero he registrado tu mensaje.";
-  return { ...conMencionMarca(fallback, mensaje, marcas, marcaYaMencionada), capa: "n3-fallback" };
+  // Follower (Alumno aprendiendo idioma)
+  const contextoFollowerBloque = followerUuid && twin ? bloqueContextoFollower(twin, followerUuid) : "";
+  const promptFollower = `${systemInstructionFollower(ownerName, idiomaEnsenanza, nivelAlumno, talesBloque)}${
+    contextoFollowerBloque ? `\n\n${contextoFollowerBloque}` : ""
+  }\n\nFORMATO DE RESPUESTA:\nResponde de forma estructurada en JSON válido:\n{\n  "respuesta": "Tu mensaje conversacional pedagógico al alumno...",\n  "traduccion_es": "Traducción de apoyo en español si aplica...",\n  "correcciones_inline": [\n    { "original": "error", "correccion": "forma natural correcta", "explicacion": "explicación breve y amable" }\n  ],\n  "nota_fonetica_ipa": "ej: schedule /ˈʃedʒ.uːl/",\n  "sugerencia_siguiente": "Pregunta de seguimiento..."\n}`;
+
+  try {
+    const res = await llamarGemini(promptFollower, mensaje, historial, null);
+    if (res && "texto" in res) {
+      let parsedTexto = res.texto;
+      let correcciones: any[] = [];
+      let notaFonetica = "";
+      let traduccionEs = "";
+      let sugerencia = "";
+
+      try {
+        const cleaned = res.texto.replace(/```json\s*/g, "").replace(/```\s*$/g, "").trim();
+        const obj = JSON.parse(cleaned);
+        if (obj.respuesta) {
+          parsedTexto = obj.respuesta;
+          correcciones = obj.correcciones_inline || obj.correcciones || [];
+          notaFonetica = obj.nota_fonetica_ipa || "";
+          traduccionEs = obj.traduccion_es || "";
+          sugerencia = obj.sugerencia_siguiente || "";
+        }
+      } catch {
+        parsedTexto = res.texto;
+      }
+
+      const { respuesta: respuestaConMarca, marcaMencionada } = conMencionMarca(
+        parsedTexto,
+        mensaje,
+        marcas,
+        marcaYaMencionada
+      );
+
+      return {
+        respuesta: respuestaConMarca,
+        capa: "n3-gemini",
+        marcaMencionada,
+        correcciones_inline: correcciones.length > 0 ? correcciones : undefined,
+        nota_fonetica_ipa: notaFonetica || undefined,
+        traduccion_es: traduccionEs || undefined,
+        sugerencia_siguiente: sugerencia || undefined,
+        indicador_ia: EU_AI_DISCLAIMER,
+      };
+    }
+  } catch (err) {
+    console.error("[Conversar Follower] Error:", err);
+  }
+
+  return {
+    respuesta: `Hello! That's an interesting topic. Let's keep practicing! How would you describe your goals with languages this month?`,
+    capa: "n3-fallback",
+    indicador_ia: EU_AI_DISCLAIMER,
+  };
 }

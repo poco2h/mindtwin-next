@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MindTwin · Lili Fit",
-  description: "El gemelo cerebral de tu profesional de bienestar y deporte.",
+  title: "MindTwins · Lili Speak",
+  description: "El gemelo cerebral de tu profesor de idiomas 24/7.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

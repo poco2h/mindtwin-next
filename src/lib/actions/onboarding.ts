@@ -55,16 +55,10 @@ export async function contratarOwner(formData: FormData): Promise<ActionResult> 
         nif,
         direccion_facturacion: direccionFacturacion,
         stripe_conectado: stripeConectado,
-        precio_follower_texto_min: 0,
       })
       .select("id")
       .single();
-    if (error) {
-      if (error.code === "23505") {
-        return { ok: false, error: "Ya existe una cuenta con este email. Inicia sesión en /login en vez de darte de alta otra vez." };
-      }
-      return { ok: false, error: error.message };
-    }
+    if (error) return { ok: false, error: error.message };
     simulated = false;
     ownerId = data.id;
   } else {
@@ -75,18 +69,15 @@ export async function contratarOwner(formData: FormData): Promise<ActionResult> 
 
   await enviarEmail({
     to: email,
-    subject: "Bienvenido a Mindtwins · Lili Fit — tu magic link de acceso",
-    html: `<p>Hola ${nombre},</p><p>Tu alta como profesional está lista. Accede desde <a href="${process.env.NEXT_PUBLIC_APP_URL ?? ""}/login">este enlace de acceso sin contraseña</a>.</p><p>Roadmap: Semana 1 crea tu perfil (EGO ID + voz) · Semana 2 invita a tus clientes · Semana 3 tu primer vídeo · Semana 4 optimiza tu dashboard.</p>`,
+    subject: "Bienvenido a MindTwins · Lili Speak — tu magic link de acceso",
+    html: `<p>Hola ${nombre},</p><p>Tu alta como profesor está lista. Accede desde <a href="${process.env.NEXT_PUBLIC_APP_URL ?? ""}/login">este enlace de acceso sin contraseña</a>.</p><p>Roadmap: Semana 1 crea tu perfil (EGO ID + voz) · Semana 2 invita a tus alumnos · Semana 3 tus primeros materiales · Semana 4 optimiza tu dashboard.</p>`,
   });
 
   return { ok: true, simulated, ownerId, email };
 }
 
 /**
- * Contacto Follower → Owner (V10 §8.2): guarda la solicitud y envía email
- * al profesional (con el contacto) y al cliente (con la referencia de que
- * el profesional le responderá con tarifas + link de pago — Lili Fit nunca
- * muestra esas tarifas en la landing pública).
+ * Contacto Alumno → Profesor
  */
 export async function contactarProfesional(
   slug: string,
@@ -118,8 +109,8 @@ export async function contactarProfesional(
 
   await enviarEmail({
     to: email,
-    subject: "Hemos avisado a tu profesional",
-    html: `<p>Hola ${nombre},</p><p>Le hemos avisado. Te responderá directamente con sus tarifas y un link de pago — Lili Fit no fija ni muestra esos precios.</p>`,
+    subject: "Hemos avisado a tu profesor",
+    html: `<p>Hola ${nombre},</p><p>Le hemos avisado. Te responderá directamente para coordinar tus clases en Lili Speak.</p>`,
   });
 
   return { ok: true, simulated };

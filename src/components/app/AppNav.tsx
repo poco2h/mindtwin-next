@@ -10,6 +10,7 @@ const LINKS_OWNER = [
   { href: "/app/cerebro", label: "Mi Cerebro", icon: "🧠" },
   { href: "/app/habitos", label: "Mis Hábitos", icon: "💚" },
   { href: "/app/videos", label: "Mis Vídeos", icon: "🎬" },
+  { href: "/app/herramientas", label: "Mis Herramientas", icon: "🛠️" },
   { href: "/app/clientes", label: "Mis Clientes", icon: "👥" },
   { href: "/app/followers", label: "Mis Followers", icon: "🧑‍🤝‍🧑" },
   { href: "/app/school", label: "Mi School", icon: "🎓" },
@@ -36,8 +37,10 @@ function AppNavInner() {
           key={l.href}
           href={l.href}
           className={
-            "rounded-full px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-wide whitespace-nowrap " +
-            (pathname === l.href.split("?")[0] ? "bg-[#1abc9c]/10 text-[#1abc9c]" : "text-white/70 hover:text-white")
+            "rounded-full px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-wide whitespace-nowrap transition-all " +
+            (pathname === l.href.split("?")[0]
+              ? "bg-[#1abc9c]/15 text-[#1abc9c] border border-[#1abc9c]/40"
+              : "text-white/70 hover:text-white hover:bg-white/5")
           }
         >
           {l.icon} {l.label}

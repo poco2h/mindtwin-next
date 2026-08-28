@@ -3,11 +3,6 @@ import type { Filosofo } from "@/lib/ego/talesWeights";
 import type { GutData } from "@/lib/gut/types";
 import type { RespuestasBaseline } from "@/lib/gut/baseline";
 
-/**
- * Persistencia de demo en localStorage mientras no hay Supabase conectado.
- * En producción esto se sustituye por lectura/escritura de `twin_profile`
- * en Supabase (ver src/lib/types/twinProfile.ts).
- */
 export type Sources = {
   google: boolean;
   instagram: boolean;
@@ -31,7 +26,6 @@ export type Direcciones = {
 
 export const DIRECCIONES_VACIAS: Direcciones = { domicilioPersonal: "", domicilioProfesional: "" };
 
-/** Datos deportivos/antropométricos recogidos en la Sesión 4 (V10 §5.3, conversacional, sin tests). */
 export type SportsProfile = {
   deporte?: string;
   nivel?: string;
@@ -49,7 +43,6 @@ export type SportsProfile = {
 
 export const SPORTS_PROFILE_VACIO: SportsProfile = {};
 
-/** Puntero de progreso dentro de la sesión activa de Mis Conversaciones (V10 §5) — qué paso toca a continuación. */
 export type OnboardingProgress = {
   iniciado: boolean;
   pasoIdx: number;
@@ -57,42 +50,37 @@ export type OnboardingProgress = {
 
 export const ONBOARDING_PROGRESS_INICIAL: OnboardingProgress = { iniciado: false, pasoIdx: 0 };
 
-/** Datos que el usuario aportó al pulsar "Conectar" en Mis Fuentes (email, usuario, archivo .txt de WhatsApp...). */
 export type ConexionFuente = {
   detalle: string;
   fileUrl?: string;
   conectadoEn: string;
 };
 
-/** Recordatorio configurado en Mis Hábitos › Alertas (V10 §Alertas). */
 export type Recordatorio = {
   id: string;
   habito: string;
   frecuenciaDias: number;
   hora: string;
   canal: "email" | "whatsapp" | "ambos";
-  /** Requerido si canal incluye whatsapp — número al que se envía el recordatorio, formato internacional (+34...). */
   telefono?: string;
-  /** ISO del último envío real por WhatsApp — controla la cadencia (frecuenciaDias) desde el cron. */
   ultimoEnvioWhatsapp?: string;
 };
 
 export type ConstanciaVertical = "deporte" | "idiomas" | "adicciones" | "nutricion" | "coaching" | "otro";
 export type ConstanciaMotivoAbandono = "estres_laboral" | "viaje" | "exito_repentino" | "lesion" | "otro";
 
-export type ConstanciaCheckin = { fecha: string /* ISO, día */ };
+export type ConstanciaCheckin = { fecha: string };
 export type ConstanciaMicroCompromiso = { texto: string; fecha: string };
 export type ConstanciaEpisodioAbandono = { fecha: string; motivo: ConstanciaMotivoAbandono };
 export type ConstanciaMensaje = { who: "gemelo" | "follower"; texto: string; fecha: string };
 
-/** Módulo Constancia — Mis Hábitos (MINDTWINS_CONSTANCIA_PROMPT_v1, entregado 2026-08-26). */
 export type ConstanciaState = {
   habitoVertical?: ConstanciaVertical;
   habitoEspecifico?: string;
   checkins: ConstanciaCheckin[];
   microCompromisos: ConstanciaMicroCompromiso[];
   episodiosAbandono: ConstanciaEpisodioAbandono[];
-  ultimaAutoevaluacionScore?: number; // 0-10
+  ultimaAutoevaluacionScore?: number;
   ultimaAutoevaluacionFecha?: string;
   mensajes: ConstanciaMensaje[];
   flagAlerta?: boolean;
@@ -113,20 +101,67 @@ export type DemoTwin = {
   sources: Sources;
   sesion_actual: "S1" | "S2" | "S3" | "S4" | "completo";
   direcciones: Direcciones;
-  /** Acumulador de respuestas Likert 1-5 de EGO ID a través de S1+S2+S3 — recalcula calcularEgoId en cada avance. */
   respuestas_raw?: Respuestas;
-  /** Acumulador de respuestas del baseline GUT conversacional (S2+S3). */
   gut_respuestas_raw?: RespuestasBaseline;
   onboarding_progress?: OnboardingProgress;
   sports_profile?: SportsProfile;
-  /** Vídeo de 15-20s leyendo un guion, grabado en /profesionales/avatar — origen del avatar_soul_id y del Photo Avatar de HeyGen. */
   avatar_video_url?: string;
-  /** Info aportada al conectar cada fuente externa en Mis Fuentes (email, usuario, archivo...). */
   sources_data?: Partial<Record<keyof Sources, ConexionFuente>>;
-  /** Recordatorios configurados en Mis Hábitos › Alertas. */
   recordatorios?: Recordatorio[];
-  /** Estado del módulo Constancia (Mis Hábitos › Constancia). */
   constancia?: ConstanciaState;
+};
+
+export const DEMO_TWIN_DEFAULT: DemoTwin = {
+  ego: {
+    big_five: { O: 85, C: 90, E: 80, A: 95, N: 20 },
+    eneagrama: { tipo: 2, ala: 1, scores: { 1: 75, 2: 95, 3: 60, 4: 50, 5: 70, 6: 65, 7: 80, 8: 55, 9: 65 } },
+    apego: "seguro",
+    rfq: "promocion",
+    teique: { ie_global: 88, bienestar: 90, autocontrol: 85, emocionalidad: 88, sociabilidad: 85 },
+    via_top5: ["Amor por aprender", "Juicio", "Curiosidad", "Perspectiva", "Honestidad"],
+    indices: { IR: 85, IA: 80, IEj: 88, IC: 90 },
+    serialized: "EGO_DEMO_JUAN_MOLL",
+  },
+  tales_weights: {
+    democrito: 0.7,
+    socrates: 0.9,
+    aristoteles: 0.85,
+    epicuro: 0.8,
+    platon: 0.75,
+    seneca: 0.8,
+    gorgias: 0.9,
+    heraclito: 0.7,
+    homero: 0.85,
+    kant: 0.95,
+  },
+  tales_data: {
+    democrito: 0.7,
+    socrates: 0.9,
+    aristoteles: 0.85,
+    epicuro: 0.8,
+    platon: 0.75,
+    seneca: 0.8,
+    gorgias: 0.9,
+    heraclito: 0.7,
+    homero: 0.85,
+    kant: 0.95,
+  },
+  gut: {
+    microbioma: "equilibrado",
+    diversidad: 0.85,
+    ejeIntestinoCerebro: 0.9,
+    gut_baseline_score: 850,
+    bacterias_dominantes: ["Lactobacillus", "Bifidobacterium", "Faecalibacterium"],
+  },
+  sources: {
+    google: true,
+    instagram: true,
+    tiktok: false,
+    whatsapp: true,
+    wearables: true,
+  },
+  sesion_actual: "completo",
+  direcciones: { domicilioPersonal: "Valencia, España", domicilioProfesional: "Lili Speak Academy" },
 };
 
 const KEY = "mindtwin_demo_profile";
@@ -145,12 +180,16 @@ export function actualizarSources(patch: Partial<Sources>): DemoTwin | null {
 }
 
 export function leerDemoTwin(): DemoTwin | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === "undefined") return DEMO_TWIN_DEFAULT;
   const raw = window.localStorage.getItem(KEY);
-  if (!raw) return null;
+  if (!raw) {
+    guardarDemoTwin(DEMO_TWIN_DEFAULT);
+    return DEMO_TWIN_DEFAULT;
+  }
   try {
-    return JSON.parse(raw) as DemoTwin;
+    const parsed = JSON.parse(raw) as DemoTwin;
+    return parsed.ego?.big_five?.O ? parsed : DEMO_TWIN_DEFAULT;
   } catch {
-    return null;
+    return DEMO_TWIN_DEFAULT;
   }
 }

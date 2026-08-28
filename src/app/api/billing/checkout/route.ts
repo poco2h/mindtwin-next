@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     // owner_license
     const ownerId = String(body?.ownerId ?? "");
     const email = String(body?.email ?? "");
-    const precioMensualEur = Number(process.env.STRIPE_LICENCIA_MENSUAL_EUR ?? 49);
+    const precioMensualEur = Number(process.env.STRIPE_LICENCIA_MENSUAL_EUR ?? 99);
 
     if (!ownerId) {
       return NextResponse.json({ error: "Falta ownerId — completa el alta antes de pagar la licencia." }, { status: 400 });
@@ -71,14 +71,13 @@ export async function POST(req: NextRequest) {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
-      payment_method_collection: "if_required",
       customer_email: email || undefined,
       allow_promotion_codes: true,
       line_items: [
         {
           price_data: {
             currency: "eur",
-            product_data: { name: "Mindtwin · Licencia mensual profesional" },
+            product_data: { name: "Lili Speak MindTwin · Suscripción Profesional Owner (99€/mes)" },
             unit_amount: Math.round(precioMensualEur * 100),
             recurring: { interval: "month" },
           },
@@ -86,7 +85,7 @@ export async function POST(req: NextRequest) {
         },
       ],
       metadata: { kind: "owner_license", ownerId },
-      success_url: `${siteUrl}/login?stripe=success`,
+      success_url: `${siteUrl}/app/conversar?owner=${ownerId}&stripe=success`,
       cancel_url: `${siteUrl}/profesionales/contratar?stripe=cancel`,
     });
 

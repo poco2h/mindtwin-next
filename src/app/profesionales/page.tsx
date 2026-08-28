@@ -5,17 +5,16 @@ import Link from "next/link";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import ConversarPreview from "@/components/landing/ConversarPreview";
-import LiliGuideSearch from "@/components/landing/LiliGuideSearch";
 import { MI_SCHOOL } from "@/lib/habitos/data";
 
 const SECCIONES = [
-  { nombre: "Conversar", desc: "Tu gemelo atiende a todos tus clientes en texto, voz y videoconferencia — 24/7, en su idioma, con tu psicología y tu metodología." },
-  { nombre: "Mis Fuentes", desc: "Alimenta tu gemelo con tu conocimiento: artículos, protocolos, estudios, PDFs o cualquier contenido que uses en consulta." },
-  { nombre: "Mi Cerebro", desc: "Tu perfil completo visualizado: EGO ID, GUT ID. Ves exactamente cómo tu gemelo te representa." },
-  { nombre: "Mis Hábitos", desc: "Define los hábitos que tu gemelo recomienda a tus clientes según su perfil. Tu gemelo los propone, hace seguimiento y ajusta." },
-  { nombre: "Mis Vídeos", desc: "Genera Reels y TikToks con tu avatar digital hablando a cámara, o vídeos de acción con tu cuerpo completo." },
-  { nombre: "Mis Clientes", desc: "Dashboard de tus clientes: rachas, alertas, minutos consumidos y facturación. Sin acceso al contenido de sus conversaciones." },
-  { nombre: "Mi School", desc: "Explica a tus clientes qué es el EGO ID, el GUT ID y cómo funciona tu MindTwin — contenido estático, sin coste." },
+  { nombre: "Conversar", desc: "Tu gemelo atiende a todos tus alumnos en texto y voz — 24/7, en cualquier idioma, con tu metodología pedagógica." },
+  { nombre: "Mis Fuentes", desc: "Alimenta tu gemelo con tu conocimiento: temarios, transcripciones, audios, guías de vocabulario o PDFs docentes." },
+  { nombre: "Mi Cerebro", desc: "Tu perfil completo visualizado: EGO ID y las 10 lentes filosóficas. Ves exactamente cómo tu gemelo te representa." },
+  { nombre: "Mi Progreso", desc: "Seguimiento pedagógico de alumnos: autoevaluaciones de fluidez, alertas de errores recurrentes, estadísticas y agenda." },
+  { nombre: "Mis Vídeos", desc: "Genera píldoras educativas y vídeos explicativos con tu avatar digital hablando a cámara con tu voz clonada." },
+  { nombre: "Mis Alumnos", desc: "Dashboard de tus alumnos: nivel, idioma, clases realizadas, minutos consumidos y facturación mensual." },
+  { nombre: "Mi School", desc: "Explica a tus alumnos cómo funciona tu Teacher MindTwin — contenido estático, sin coste." },
 ];
 
 export default function ProfesionalesLanding() {
@@ -28,13 +27,14 @@ export default function ProfesionalesLanding() {
         <div className="flex items-center justify-between">
           <Link href="/profesionales" className="flex items-center gap-3">
             <Logo size={30} />
-            <span className="text-[10px] leading-tight text-[rgb(99,99,99)]">Para profesionales</span>
+            <span className="text-[10px] leading-tight text-[rgb(99,99,99)]">Para profesores</span>
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-[11px] text-[rgb(99,99,99)]">
             <a href="#sistema" className="hover:text-black">El sistema</a>
             <a href="#proceso" className="hover:text-black">Cómo funciona</a>
-            <Link href="/app/fuentes" className="font-bold text-[#1abc9c] hover:text-black">Demo</Link>
-            <Link href="/" className="hover:text-black">Versión cliente →</Link>
+            <Link href="/tarifas" className="hover:text-black">Tarifas</Link>
+            <Link href="/app/conversar" className="font-bold text-[#1abc9c] hover:text-black">Demo</Link>
+            <Link href="/" className="hover:text-black">Versión alumno →</Link>
             <Link href="/profesionales/cuenta" className="hover:text-black">Mi cuenta</Link>
           </nav>
           <div className="flex items-center gap-3">
@@ -59,8 +59,9 @@ export default function ProfesionalesLanding() {
           <nav className="mt-3 flex flex-col gap-4 border-t border-black/10 pt-3 text-sm md:hidden">
             <a href="#sistema" onClick={() => setMenuAbierto(false)} className="text-black/70">El sistema</a>
             <a href="#proceso" onClick={() => setMenuAbierto(false)} className="text-black/70">Cómo funciona</a>
-            <Link href="/app/fuentes" onClick={() => setMenuAbierto(false)} className="font-bold text-[#1abc9c]">Demo</Link>
-            <Link href="/" onClick={() => setMenuAbierto(false)} className="text-black/70">Versión cliente →</Link>
+            <Link href="/tarifas" onClick={() => setMenuAbierto(false)} className="text-black/70">Tarifas</Link>
+            <Link href="/app/conversar" onClick={() => setMenuAbierto(false)} className="font-bold text-[#1abc9c]">Demo</Link>
+            <Link href="/" onClick={() => setMenuAbierto(false)} className="text-black/70">Versión alumno →</Link>
             <Link
               href="/profesionales/contratar"
               onClick={() => setMenuAbierto(false)}
@@ -73,22 +74,22 @@ export default function ProfesionalesLanding() {
       </header>
 
       <main className="pt-24">
-        {/* BLOQUE 1 · HERO — BLANCO (obligatorio) */}
+        {/* BLOQUE 1 · HERO */}
         <section className="bg-white px-6 py-20">
           <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2">
             <div>
-              <p className="text-[10px] text-[rgb(99,99,99)]">
-                Para nutricionistas · entrenadores · coaches
+              <p className="text-[10px] text-[rgb(99,99,99)] uppercase tracking-wider">
+                Para profesores particulares · academias · docentes de idiomas
               </p>
               <h1 className="mt-8 font-serif text-[42px] leading-[1.05] font-normal text-black md:text-[52px] md:leading-[1.05]">
-                Tu doble digital.
+                Tu doble digital docente.
                 <br />
-                <em className="font-normal not-italic text-[rgb(99,99,99)]">Sin límite de clientes.</em>
+                <em className="font-normal not-italic text-[rgb(99,99,99)]">Sin límite de alumnos.</em>
               </h1>
               <p className="mt-8 max-w-xl text-[15px] font-light leading-[26.25px] text-[rgb(99,99,99)]">
-                Lili Fit crea tu gemelo cerebral entrenado con tu psicología, tu voz y tu
-                metodología. Atiende a todos tus clientes 24/7 en texto, voz y vídeo — sin que
-                estés presente.
+                Lili Speak crea tu gemelo docente entrenado con tu pedagogía, tu voz y tu
+                metodología. Atiende a todos tus alumnos 24/7 en texto y voz — sin que
+                tengas que estar presente.
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <Link
@@ -118,56 +119,78 @@ export default function ProfesionalesLanding() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/mindtwin-bustos.jpg"
-              alt="Dos gemelos cerebrales conectados"
+              alt="Teacher MindTwin Lili Speak"
               className="mx-auto w-full max-w-md rounded-3xl border border-black/10"
             />
+          </div>
+
+          {/* BUSCADOR DE PROFESORES */}
+          <div className="mx-auto mt-14 max-w-2xl text-center">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[rgb(99,99,99)] mb-3">
+              Directorio Docente Lili Speak
+            </p>
+            <h2 className="font-serif text-2xl md:text-3xl text-black font-normal mb-6">
+              Busca profesores particulares y academias
+            </h2>
+            <form action="/clientes/buscar" method="get" className="flex items-center gap-3 rounded-full border border-black/20 bg-white px-5 py-3 shadow-sm hover:border-black transition-colors">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-black/50">
+                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+              </svg>
+              <input
+                type="text"
+                name="q"
+                placeholder="Buscar por idioma (ej. Inglés, Francés, Alemán) o nombre de profesor..."
+                className="w-full bg-transparent text-sm text-black outline-none placeholder:text-black/40 font-light"
+              />
+              <button type="submit" className="rounded-full bg-black px-5 py-1.5 text-xs font-semibold text-white hover:bg-[#1abc9c] transition-colors shrink-0">
+                Buscar
+              </button>
+            </form>
           </div>
 
           <div className="mx-auto mt-16 max-w-5xl text-center">
             <p className="text-xs font-semibold uppercase tracking-widest text-[rgb(99,99,99)]">Conversar</p>
             <h2 className="mt-3 font-serif text-3xl md:text-4xl">
-              Tu perfil habla por ti, en cualquier idioma, a cualquier hora.
+              Tu perfil enseña por ti, en cualquier idioma, a cualquier hora.
             </h2>
           </div>
           <ConversarPreview />
         </section>
 
-        <LiliGuideSearch marca="Lili Fit" />
-
-        {/* BLOQUE 2 · EL SISTEMA — NEGRO */}
+        {/* BLOQUE 2 · EL SISTEMA */}
         <section id="sistema" className="bg-black px-6 py-20 text-white">
           <div className="mx-auto max-w-5xl">
             <p className="text-xs font-semibold uppercase tracking-widest text-white/50">El sistema</p>
             <h2 className="mt-3 font-serif text-3xl md:text-4xl">
-              Creas tu gemelo cerebral. Tus clientes acceden a él 24/7.
+              Creas tu gemelo docente. Tus alumnos practican con él 24/7.
             </h2>
             <div className="mt-10 grid gap-6 md:grid-cols-2">
               <div className="rounded-2xl border border-white/15 p-6">
                 <p className="text-xs font-bold uppercase tracking-wide text-[#1abc9c]">
-                  Tú · Owner · Profesional
+                  Tú · Profesor de Idiomas
                 </p>
-                <h3 className="mt-2 text-xl font-semibold">Creas tu MindTwin</h3>
+                <h3 className="mt-2 text-xl font-semibold">Creas tu Teacher MindTwin</h3>
                 <p className="mt-2 text-sm text-white/60">
-                  Tres sesiones conversacionales de 20 minutos. El sistema aprende cómo
-                  piensas, cómo hablas y cómo decides. Clona tu voz. Construye tu perfil
-                  completo.
+                  Tres sesiones conversacionales de 20 minutos. El sistema aprende tu estilo
+                  comunicativo, tu paciencia y tus directrices. Clona tu voz. Construye tu perfil
+                  pedagógico completo.
                 </p>
               </div>
               <div className="rounded-2xl border border-white/15 p-6">
                 <p className="text-xs font-bold uppercase tracking-wide text-[#1abc9c]">
-                  Tus clientes · Followers
+                  Tus alumnos · Estudiantes
                 </p>
-                <h3 className="mt-2 text-xl font-semibold">Acceden a tu gemelo</h3>
+                <h3 className="mt-2 text-xl font-semibold">Practican con tu gemelo</h3>
                 <p className="mt-2 text-sm text-white/60">
-                  Cada cliente habla con tu MindTwin cuando necesita. Texto, voz o vídeo en
-                  tiempo real — tu metodología, tu tono, tus respuestas.
+                  Cada alumno habla con tu MindTwin cuando necesita. Texto o voz en
+                  tiempo real — tu metodología, tu acento y tus explicaciones.
                 </p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* BLOQUE 3 · PROCESO — BLANCO */}
+        {/* BLOQUE 3 · PROCESO */}
         <section id="proceso" className="bg-white px-6 py-20">
           <div className="mx-auto max-w-5xl">
             <p className="text-xs font-semibold uppercase tracking-widest text-[rgb(99,99,99)]">El proceso</p>
@@ -176,9 +199,9 @@ export default function ProfesionalesLanding() {
             </h2>
             <div className="mt-10 grid gap-6 md:grid-cols-3">
               {[
-                { s: "Sesión 01 · 20 min", t: "EGO ID I", d: "Eneagrama, Big Five (OCEAN), valores y estilo de comunicación." },
-                { s: "Sesión 02 · 20 min", t: "EGO ID II", d: "Estilo de apego, inteligencia emocional, perfil motivacional." },
-                { s: "Sesión 03 · 20 min", t: "GUT ID + activación", d: "Microbioma (28 preguntas), grabas tu voz y un vídeo corto. Tu gemelo queda activo." },
+                { s: "Sesión 01 · 20 min", t: "EGO ID I", d: "Eneagrama, Big Five (OCEAN), valores y estilo de comunicación pedagógica." },
+                { s: "Sesión 02 · 20 min", t: "EGO ID II", d: "Estilo de apego, inteligencia emocional, perfil motivacional de enseñanza." },
+                { s: "Sesión 03 · 20 min", t: "Activación de voz", d: "Grabación y clonación de voz, carga de materiales. Tu gemelo queda activo." },
               ].map((step) => (
                 <div key={step.t} className="rounded-2xl border border-black/10 p-6">
                   <p className="text-xs uppercase tracking-wide text-[rgb(99,99,99)]">{step.s}</p>
@@ -190,14 +213,14 @@ export default function ProfesionalesLanding() {
           </div>
         </section>
 
-        {/* BLOQUE 4 · SECCIONES APP — NEGRO */}
+        {/* BLOQUE 4 · SECCIONES APP */}
         <section className="bg-black px-6 py-20 text-white">
           <div className="mx-auto max-w-5xl">
             <p className="text-xs font-semibold uppercase tracking-widest text-white/50">
               Tu MindTwin · lo que encuentras dentro
             </p>
             <h2 className="mt-3 font-serif text-3xl md:text-4xl">
-              Tu gemelo cerebral. Siete espacios, una sola plataforma.
+              Tu gemelo docente. Siete espacios, una sola plataforma.
             </h2>
             <div className="mt-10 grid gap-5 md:grid-cols-2">
               {SECCIONES.map((s) => (
@@ -210,7 +233,7 @@ export default function ProfesionalesLanding() {
           </div>
         </section>
 
-        {/* BLOQUE 5 · MI SCHOOL → FAQs — BLANCO (último bloque antes del CTA) */}
+        {/* BLOQUE 5 · MI SCHOOL */}
         <section id="school" className="bg-white px-6 py-20">
           <div className="mx-auto max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-widest text-[rgb(99,99,99)]">
@@ -242,7 +265,7 @@ export default function ProfesionalesLanding() {
           </div>
         </section>
 
-        {/* BLOQUE 6 · CTA final — NEGRO */}
+        {/* BLOQUE 6 · CTA final */}
         <section id="cta" className="bg-black px-6 py-20 text-center text-white">
           <h2 className="font-serif text-3xl md:text-4xl">Empieza hoy. Activo en 60 minutos.</h2>
           <Link

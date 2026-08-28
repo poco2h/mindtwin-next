@@ -7,8 +7,8 @@ import Logo from "@/components/Logo";
 import { calcularFidelidadDemo } from "@/lib/fidelity/calcularDemo";
 import { useTwin } from "@/lib/session/useTwin";
 
-export const OWNER_NOMBRE_DEMO = "David Rodríguez";
-const OWNER_INICIALES_DEMO = "DR";
+export const OWNER_NOMBRE_DEMO = "Juan Moll";
+const OWNER_INICIALES_DEMO = "JM";
 const FOLLOWER_NOMBRE_DEMO = "Invitado";
 const FOLLOWER_INICIALES_DEMO = "IN";
 

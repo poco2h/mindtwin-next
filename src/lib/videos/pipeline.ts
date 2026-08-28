@@ -1,4 +1,4 @@
-export type VariantePV = "v3" | "v4" | "combo" | "heygen";
+export type VariantePV = "v3" | "v4" | "combo";
 
 export type VideoJobResult = {
   estado: "completado" | "procesando" | "simulado" | "error";
@@ -9,17 +9,16 @@ export type VideoJobResult = {
 };
 
 /**
- * Voz pública de ElevenLabs ("Rachel") — fallback cuando no se pasa
- * ownerId o el owner todavía no ha clonado su voz en /profesionales/voz
- * (twin_profiles.voice_id).
+ * Voz pública de ElevenLabs ("Rachel") usada como placeholder hasta que el
+ * owner clone su propia voz en la sesión S3 de Conversar (elevenlabs_voice_id
+ * en twin_profile, hoy siempre null — ver src/lib/types/twinProfile.ts).
  */
 const VOICE_ID_PLACEHOLDER = "21m00Tcm4TlvDq8ikWAM";
 
 /**
- * Imagen de referencia — fallback cuando no se pasa ownerId o el owner
- * todavía no ha subido su foto en /profesionales/avatar
- * (twin_profiles.avatar_soul_id). Tiene que ser una URL pública que
- * Higgsfield pueda descargar de verdad.
+ * Imagen de referencia usada como placeholder hasta que exista un flujo real
+ * de subida de foto/avatar del owner (Mis Fuentes o el propio onboarding).
+ * Tiene que ser una URL pública que Higgsfield pueda descargar de verdad.
  */
 const IMAGE_URL_PLACEHOLDER = "https://picsum.photos/id/64/768/1024";
 
@@ -29,41 +28,9 @@ export type HiggsfieldStatus = {
   status_url?: string;
   error?: string | null;
   video?: { url: string } | null;
-  image?: { url: string } | null;
 };
 
-export type ImageJobResult = {
-  estado: "completado" | "procesando" | "error";
-  mensaje: string;
-  imageUrl?: string;
-  requestId?: string;
-  statusUrl?: string;
-};
-
-/** Igual que consultarEstadoVideo pero para jobs de imagen (Soul text2image). */
-export async function consultarEstadoImagen(statusUrl: string): Promise<ImageJobResult> {
-  const authHeader = higgsfieldAuthHeader();
-  if (!authHeader) return { estado: "error", mensaje: "Falta configurar Higgsfield." };
-
-  const res = await fetch(statusUrl, { headers: { Authorization: authHeader } });
-  if (!res.ok) return { estado: "error", mensaje: `Higgsfield status ${res.status}` };
-  const data = (await res.json()) as HiggsfieldStatus;
-
-  if (data.status === "completed" && data.image?.url) {
-    return { estado: "completado", mensaje: "Foto generada.", imageUrl: data.image.url, requestId: data.request_id };
-  }
-  if (data.status === "failed" || data.status === "nsfw" || data.status === "canceled") {
-    return { estado: "error", mensaje: `Higgsfield: ${data.error ?? data.status}`, requestId: data.request_id };
-  }
-  return {
-    estado: "procesando",
-    mensaje: `Higgsfield sigue generando la foto… (${data.status})`,
-    requestId: data.request_id,
-    statusUrl,
-  };
-}
-
-export function higgsfieldAuthHeader(): string | null {
+function higgsfieldAuthHeader(): string | null {
   const secret = process.env.HIGGSFIELD_API_KEY;
   const keyId = process.env.HIGGSFIELD_API_KEY_ID;
   if (!secret || !keyId) return null;
@@ -77,16 +44,7 @@ export function higgsfieldAuthHeader(): string | null {
  * (los planes de Vercel cortan la función mucho antes de que Higgsfield
  * termine de generar el vídeo — probado: FUNCTION_INVOCATION_TIMEOUT).
  */
-const HEYGEN_STATUS_PREFIX = "heygen://";
-
 export async function consultarEstadoVideo(statusUrl: string): Promise<VideoJobResult> {
-  if (statusUrl.startsWith(HEYGEN_STATUS_PREFIX)) {
-    const { consultarEstadoVideoHeyGen } = await import("@/lib/videos/heygen");
-    const videoId = statusUrl.slice(HEYGEN_STATUS_PREFIX.length);
-    const r = await consultarEstadoVideoHeyGen(videoId);
-    return { estado: r.estado, mensaje: r.mensaje, videoUrl: r.videoUrl, statusUrl };
-  }
-
   const authHeader = higgsfieldAuthHeader();
   if (!authHeader) return { estado: "error", mensaje: "Falta configurar Higgsfield." };
 
@@ -119,30 +77,9 @@ export async function consultarEstadoVideo(statusUrl: string): Promise<VideoJobR
  * respuesta es asíncrona (request_id + status_url) — este pipeline solo
  * ENVÍA el trabajo; el cliente sondea /api/videos/estado con el status_url.
  */
-export async function generarVideo(variante: VariantePV, guion: string, ownerId?: string): Promise<VideoJobResult> {
-  if (variante === "heygen") {
-    return generarVideoHeygenComoVariante(guion, ownerId);
-  }
-
+export async function generarVideo(variante: VariantePV, guion: string): Promise<VideoJobResult> {
   const elevenlabsKey = process.env.ELEVENLABS_API_KEY;
   const authHeader = higgsfieldAuthHeader();
-
-  let voiceId = VOICE_ID_PLACEHOLDER;
-  let imageUrl = IMAGE_URL_PLACEHOLDER;
-  if (ownerId) {
-    const { getSupabaseAdmin } = await import("@/lib/supabase/server");
-    const supabase = getSupabaseAdmin();
-    if (supabase) {
-      const { data } = await supabase
-        .from("twin_profiles")
-        .select("voice_id, avatar_soul_id")
-        .eq("owner_id", ownerId)
-        .is("follower_id", null)
-        .maybeSingle();
-      if (data?.voice_id) voiceId = data.voice_id;
-      if (data?.avatar_soul_id) imageUrl = data.avatar_soul_id;
-    }
-  }
 
   if (!elevenlabsKey || !authHeader) {
     const faltan = [!elevenlabsKey && "ELEVENLABS_API_KEY", !authHeader && "HIGGSFIELD_API_KEY/HIGGSFIELD_API_KEY_ID"].filter(Boolean);
@@ -163,7 +100,7 @@ export async function generarVideo(variante: VariantePV, guion: string, ownerId?
 
   try {
     // 1) TTS con ElevenLabs — voz placeholder hasta tener elevenlabs_voice_id real del owner.
-    const ttsRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+    const ttsRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID_PLACEHOLDER}`, {
       method: "POST",
       headers: { "xi-api-key": elevenlabsKey, "Content-Type": "application/json", Accept: "audio/mpeg" },
       body: JSON.stringify({ text: guion, model_id: "eleven_multilingual_v2" }),
@@ -175,7 +112,7 @@ export async function generarVideo(variante: VariantePV, guion: string, ownerId?
       method: "POST",
       headers: { Authorization: authHeader, "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
-        image_url: imageUrl,
+        image_url: IMAGE_URL_PLACEHOLDER,
         prompt: guion.slice(0, 500),
       }),
     });
@@ -194,41 +131,4 @@ export async function generarVideo(variante: VariantePV, guion: string, ownerId?
   } catch (e) {
     return { estado: "error", mensaje: e instanceof Error ? e.message : "Error desconocido" };
   }
-}
-
-/**
- * Variante HeyGen · Máxima calidad — requiere que el owner ya haya
- * entrenado su Digital Twin en heygen.com y guardado su avatar_id/voice_id
- * (twin_profiles.heygen_avatar_id/heygen_voice_id).
- */
-async function generarVideoHeygenComoVariante(guion: string, ownerId?: string): Promise<VideoJobResult> {
-  if (!ownerId) {
-    return { estado: "error", mensaje: "Necesitas iniciar sesión como profesional para usar HeyGen." };
-  }
-
-  const { getSupabaseAdmin } = await import("@/lib/supabase/server");
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return { estado: "error", mensaje: "Supabase no configurado." };
-
-  const { data } = await supabase
-    .from("twin_profiles")
-    .select("heygen_avatar_id, heygen_voice_id")
-    .eq("owner_id", ownerId)
-    .is("follower_id", null)
-    .maybeSingle();
-
-  if (!data?.heygen_avatar_id || !data?.heygen_voice_id) {
-    return {
-      estado: "error",
-      mensaje: "Todavía no has entrenado tu Digital Twin en heygen.com ni guardado tu avatar_id/voice_id.",
-    };
-  }
-
-  const { generarVideoHeyGen } = await import("@/lib/videos/heygen");
-  const r = await generarVideoHeyGen(guion, data.heygen_avatar_id, data.heygen_voice_id);
-
-  if (r.estado === "procesando" && r.videoId) {
-    return { estado: "procesando", mensaje: r.mensaje, statusUrl: `${HEYGEN_STATUS_PREFIX}${r.videoId}` };
-  }
-  return { estado: r.estado, mensaje: r.mensaje, videoUrl: r.videoUrl };
 }

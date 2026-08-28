@@ -4,45 +4,40 @@ export type Profesional = {
   especialidad: string;
   ciudad: string;
   bio: string;
-  precioTextoMin: number; // € / sesión 20 min texto — lo fija el propio profesional
+  precioTextoMin: number;
 };
 
-/**
- * Dataset de ejemplo. En producción esto vive en Supabase (tabla `owners`)
- * y el filtro de src/lib/search/buscarProfesionales.ts pasa a ser una query SQL,
- * pero se mantiene 100% determinista (sin LLM, sin tokens) en ambos casos.
- */
 export const PROFESIONALES: Profesional[] = [
   {
     slug: "maria-lopez",
     nombre: "María López",
-    especialidad: "Psicóloga del deporte",
+    especialidad: "Profesora de Inglés C2",
     ciudad: "Madrid",
-    bio: "Especializada en rendimiento y gestión de la presión competitiva.",
+    bio: "Especializada en preparación de exámenes oficiales C1/C2 y fluidez profesional.",
     precioTextoMin: 2.83,
   },
   {
     slug: "laura-garcia",
     nombre: "Laura García",
-    especialidad: "Nutricionista deportiva",
+    especialidad: "Docente de Francés & Fonética",
     ciudad: "Barcelona",
-    bio: "Planes nutricionales basados en microbioma (GUT ID) para deportistas.",
+    bio: "Clases dinámicas de conversación y corrección fonética personalizada.",
     precioTextoMin: 2.9,
   },
   {
     slug: "carlos-ruiz",
     nombre: "Carlos Ruiz",
-    especialidad: "Entrenador personal",
+    especialidad: "Profesor de Alemán Técnico",
     ciudad: "Valencia",
-    bio: "Periodización de fuerza para deportistas amateur y semi-profesionales.",
+    bio: "Alemán para ingenieros y profesionales de la salud con metodología práctica.",
     precioTextoMin: 2.75,
   },
   {
     slug: "ana-torres",
     nombre: "Ana Torres",
-    especialidad: "Fisioterapeuta",
+    especialidad: "Profesora de Italiano & Cultura",
     ciudad: "Madrid",
-    bio: "Prevención y readaptación de lesiones en deportistas de resistencia.",
+    bio: "Inmersión conversacional y vocabulario para viajes, negocios y vida profesional.",
     precioTextoMin: 2.95,
   },
 ];
