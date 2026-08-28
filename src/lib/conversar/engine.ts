@@ -177,14 +177,36 @@ export async function responderConversar(input: ConversarInput): Promise<Convers
   const twin = ownerId ? await leerTwinServer(ownerId) : null;
   const talesBloque = bloqueTalesPrompt(twin, mensaje);
 
+function limpiarTextoRespuesta(txt: string): string {
+  if (!txt) return "";
+  let s = txt.trim();
+  s = s.replace(/```json\s*/gi, "").replace(/```\s*$/g, "").trim();
+  if (s.startsWith("{") && s.includes('"respuesta"')) {
+    try {
+      const obj = JSON.parse(s);
+      if (obj.respuesta) return String(obj.respuesta);
+    } catch {
+      const m = s.match(/"respuesta"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      if (m && m[1]) {
+        try {
+          return JSON.parse(`"${m[1]}"`);
+        } catch {
+          return m[1].replace(/\\n/g, "\n").replace(/\\"/g, '"');
+        }
+      }
+    }
+  }
+  return s;
+}
+
   if (role === "owner") {
-    const promptOwner = `${systemInstructionOwner(ownerName, talesBloque)}\nEres el clon en entrenamiento de ${ownerName}. Conversa con el profesor sobre su metodología pedagógica, sus preferencias de enseñanza y la preparación de sus clases. Responde en español con profesionalismo.`;
+    const promptOwner = `${systemInstructionOwner(ownerName, talesBloque)}\nEres el clon en entrenamiento de ${ownerName}. Conversa con el profesor sobre su metodología pedagógica, sus preferencias de enseñanza y la preparación de sus clases. Responde en español de forma conversacional y profesional directa (NUNCA en formato JSON).`;
 
     try {
       const res = await llamarGemini(promptOwner, mensaje, historial, null);
       if (res && "texto" in res) {
         return {
-          respuesta: res.texto,
+          respuesta: limpiarTextoRespuesta(res.texto),
           capa: "n3-gemini",
           indicador_ia: EU_AI_DISCLAIMER,
         };
@@ -226,8 +248,10 @@ export async function responderConversar(input: ConversarInput): Promise<Convers
           sugerencia = obj.sugerencia_siguiente || "";
         }
       } catch {
-        parsedTexto = res.texto;
+        parsedTexto = limpiarTextoRespuesta(res.texto);
       }
+
+      parsedTexto = limpiarTextoRespuesta(parsedTexto);
 
       const { respuesta: respuestaConMarca, marcaMencionada } = conMencionMarca(
         parsedTexto,

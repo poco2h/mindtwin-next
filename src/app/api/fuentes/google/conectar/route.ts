@@ -12,10 +12,10 @@ export async function GET(req: NextRequest) {
   const ownerId = req.nextUrl.searchParams.get("ownerId");
   if (!ownerId) return NextResponse.json({ error: "Falta ownerId" }, { status: 400 });
 
-  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientId = process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_OAUTH_CLIENT_ID || process.env.GMAIL_API_CLIENT_ID;
   if (!clientId) return NextResponse.json({ error: "GOOGLE_CLIENT_ID no configurado" }, { status: 501 });
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://mindtwin-app.vercel.app";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://lili-speak-demo.vercel.app");
   const redirectUri = `${appUrl}/api/fuentes/google/callback`;
 
   const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");

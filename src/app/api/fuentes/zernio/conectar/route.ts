@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Faltan ownerId o plataforma válida" }, { status: 400 });
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://mindtwin-app.vercel.app";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://lili-speak-demo.vercel.app");
   const redirectUrl = `${appUrl}/api/fuentes/zernio/callback?ownerId=${encodeURIComponent(ownerId)}`;
 
   const resultado = await urlConexionZernio(plataforma, redirectUrl, ownerId);

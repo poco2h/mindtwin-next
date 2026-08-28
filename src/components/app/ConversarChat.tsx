@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import VideollamadaPanel from "./VideollamadaPanel";
 import VozPanel from "./VozPanel";
+import TraduccionSimultaneaPanel from "./TraduccionSimultaneaPanel";
 import { leerMarcas } from "@/lib/demo/marcas";
 import { useSessionBilling } from "@/lib/billing/useSessionBilling";
 import type { Canal as CanalBilling } from "@/lib/billing/pricing";
@@ -74,6 +75,33 @@ const PROMPTS_SUGERIDOS_FOLLOWER = [
   "I would like to practice vocabulary for a job interview in English.",
 ];
 
+const PROMPTS_SUGERIDOS_OWNER = [
+  "¿Cuál es mi enfoque pedagógico principal?",
+  "¿Qué niveles MCER y tipos de clases imparto?",
+  "¿Cómo prefieres que corrijamos los errores de fonética a los alumnos?",
+];
+
+function sanitizarTexto(t: any): string {
+  if (typeof t !== "string") return "";
+  let clean = t.replace(/```json\s*/gi, "").replace(/```\s*$/g, "").trim();
+  if (clean.startsWith("{") && clean.includes('"respuesta"')) {
+    try {
+      const o = JSON.parse(clean);
+      if (o.respuesta) return String(o.respuesta);
+    } catch {
+      const m = clean.match(/"respuesta"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      if (m && m[1]) {
+        try {
+          return JSON.parse(`"${m[1]}"`);
+        } catch {
+          return m[1].replace(/\\n/g, "\n").replace(/\\"/g, '"');
+        }
+      }
+    }
+  }
+  return clean;
+}
+
 export default function ConversarChat({
   ownerName,
   role,
@@ -91,6 +119,7 @@ export default function ConversarChat({
   onboardingCompleto?: boolean;
   sesionActual?: "S1" | "S2" | "S3" | "S4";
 }) {
+  const [modoConversacion, setModoConversacion] = useState<"clase" | "traduccion">("clase");
   const [canal, setCanal] = useState<Canal>(canalInicial ?? "texto");
   const [messages, setMessages] = useState<Msg[]>([
     { who: "MindTwin", time: now(), text: saludoInicial(role, ownerName, onboardingCompleto) },
@@ -142,12 +171,14 @@ export default function ConversarChat({
       const data = await res.json();
       if (data.marcaMencionada) setMarcaYaMencionada(true);
 
+      const textoLimpio = sanitizarTexto(data.respuesta);
+
       setMessages((m) => [
         ...m,
         {
           who: "MindTwin",
           time: now(),
-          text: data.respuesta ?? "",
+          text: textoLimpio,
           correcciones: data.correcciones_inline,
           notaFonetica: data.nota_fonetica_ipa,
           traduccionEs: data.traduccion_es,
@@ -171,9 +202,50 @@ export default function ConversarChat({
 
   return (
     <div className="relative mx-auto flex h-[calc(100vh-140px)] max-w-4xl flex-col rounded-2xl border border-white/10 bg-black/40 p-4 backdrop-blur-xl shadow-2xl">
+      {/* Cabecera de Conversaciones: Owner (Calibración) vs Follower (Selector de Clase/Traducción) */}
+      <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-3">
+        {role === "owner" ? (
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-[#1abc9c]/20 border border-[#1abc9c]/30 px-3 py-1 text-xs font-bold text-[#1abc9c]">
+              ⚙️ Calibración del MindTwin
+            </span>
+            <span className="text-xs text-white/50">Sesiones pedagógicas de {ownerName}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setModoConversacion("clase")}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
+                modoConversacion === "clase"
+                  ? "bg-white text-black shadow-md"
+                  : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
+              }`}
+            >
+              💬 Práctica de Clase
+            </button>
 
-      {/* Contenido según el canal activo */}
-      {canal === "voz" ? (
+            <button
+              type="button"
+              onClick={() => setModoConversacion("traduccion")}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
+                modoConversacion === "traduccion"
+                  ? "bg-[#1abc9c] text-black shadow-md"
+                  : "bg-white/10 text-white/70 hover:bg-[#1abc9c]/20 hover:text-white"
+              }`}
+            >
+              🌐 Traducción Simultánea
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Contenido según el modo activo */}
+      {role === "follower" && modoConversacion === "traduccion" ? (
+        <div className="flex-1 overflow-hidden">
+          <TraduccionSimultaneaPanel />
+        </div>
+      ) : canal === "voz" ? (
         <div className="flex-1 overflow-y-auto">
           <VozPanel
             ownerName={ownerName}
@@ -182,7 +254,7 @@ export default function ConversarChat({
               setMessages((m) => [
                 ...m,
                 { who: "Tú", time: now(), text: texto },
-                { who: "MindTwin", time: now(), text: respuesta },
+                { who: "MindTwin", time: now(), text: sanitizarTexto(respuesta) },
               ]);
             }}
           />
@@ -218,7 +290,7 @@ export default function ConversarChat({
                   {m.text}
 
                   {/* Widgets de correcciones para follower */}
-                  {m.correcciones && m.correcciones.length > 0 && (
+                  {role === "follower" && m.correcciones && m.correcciones.length > 0 && (
                     <div className="mt-3 space-y-2 border-t border-white/10 pt-2 text-xs">
                       <div className="font-bold text-amber-300">💡 Sugerencia pedagógica:</div>
                       {m.correcciones.map((c, idx) => (
@@ -231,16 +303,16 @@ export default function ConversarChat({
                     </div>
                   )}
 
-                  {/* Notas fonéticas IPA */}
-                  {m.notaFonetica && (
+                  {/* Notas fonéticas IPA solo en follower */}
+                  {role === "follower" && m.notaFonetica && (
                     <div className="mt-2 flex items-center gap-1.5 rounded bg-blue-500/10 px-2.5 py-1 text-[11px] text-blue-200 border border-blue-500/20">
                       <span>🗣️ Guía Fonética:</span>
                       <span className="font-mono font-bold text-white">{m.notaFonetica}</span>
                     </div>
                   )}
 
-                  {/* Traducción de apoyo */}
-                  {m.traduccionEs && (
+                  {/* Traducción de apoyo solo en follower */}
+                  {role === "follower" && m.traduccionEs && (
                     <div className="mt-2 text-[11px] italic text-white/60">
                       ℹ️ {m.traduccionEs}
                     </div>
@@ -260,10 +332,10 @@ export default function ConversarChat({
             )}
           </div>
 
-          {/* Prompts sugeridos solo para el Follower al inicio */}
-          {role === "follower" && messages.length <= 2 && (
+          {/* Prompts sugeridos: Owner (calibración) vs Follower (práctica inglés) */}
+          {messages.length <= 2 && (
             <div className="my-2 flex flex-wrap gap-1.5">
-              {PROMPTS_SUGERIDOS_FOLLOWER.map((p, idx) => (
+              {(role === "owner" ? PROMPTS_SUGERIDOS_OWNER : PROMPTS_SUGERIDOS_FOLLOWER).map((p, idx) => (
                 <button
                   key={idx}
                   onClick={() => enviarTexto(p)}
@@ -275,7 +347,7 @@ export default function ConversarChat({
             </div>
           )}
 
-          {/* Barra inferior limpia (Referencia exactísima Captura 3) */}
+          {/* Barra inferior limpia */}
           <form onSubmit={handleSend} className="mt-3 flex items-center gap-2">
             {/* Botón Micrófono */}
             <button
@@ -298,7 +370,7 @@ export default function ConversarChat({
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Escribe un mensaje..."
+                placeholder={role === "owner" ? "Responde a tu MindTwin para calibrar tu clon..." : "Escribe un mensaje en inglés..."}
                 disabled={sending}
                 className="w-full rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm text-white placeholder-white/40 focus:border-[#1abc9c] focus:outline-none focus:ring-1 focus:ring-[#1abc9c] disabled:opacity-50"
               />
@@ -318,7 +390,7 @@ export default function ConversarChat({
             </button>
           </form>
 
-          {/* Bolsa de minutos abajo a la derecha */}
+          {/* Única Bolsa de minutos (abajo a la derecha) */}
           <div className="mt-2 flex items-center justify-end">
             <div className="rounded-full border border-white/10 bg-black/60 px-3 py-1 text-[11px] text-white/70 shadow-md">
               Bolsa: <span className="font-bold text-[#1abc9c]">15.67 min</span> disponibles

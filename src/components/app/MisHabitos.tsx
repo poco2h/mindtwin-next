@@ -3,47 +3,42 @@
 import { useState } from "react";
 import { useTwin } from "@/lib/session/useTwin";
 
-const MODULOS = [
-  { key: "speaking", label: "🗣️ Práctica Oral (Speaking)" },
-  { key: "listening", label: "🎧 Comprensión (Listening)" },
-  { key: "vocabulario", label: "📚 Vocabulario & Gramática" },
-  { key: "recordatorios", label: "🔔 Recordatorios & Alertas" },
+const TABS = [
+  { key: "habitos", label: "📋 Hábitos sugeridos" },
+  { key: "constancia", label: "🔥 Constancia" },
+  { key: "autoevaluacion", label: "📝 Autoevaluación" },
+  { key: "alertas", label: "🔔 Alertas" },
+  { key: "estadisticas", label: "📊 Estadísticas" },
 ] as const;
 
-type Modulo = (typeof MODULOS)[number]["key"];
+type TabKey = (typeof TABS)[number]["key"];
 
-const HABITOS_SUGERIDOS: Record<Modulo, Array<{ nombre: string; desc: string; duracion: string }>> = {
-  speaking: [
-    { nombre: "Conversación con Teacher MindTwin", desc: "Práctica de fluidez oral en inglés de 15-20 min.", duracion: "20 min/día" },
-    { nombre: "Lectura en voz alta con IPA", desc: "Enfoque en entonación y pronunciación de vocales complejas.", duracion: "10 min/día" },
-    { nombre: "Simulación de Roleplay / Entrevista", desc: "Casos prácticos de trabajo y reuniones internacionales.", duracion: "15 min/sesión" },
-  ],
-  listening: [
-    { nombre: "Podcast nativo por nivel MCER", desc: "Escucha activa sin subtítulos para acostumbrar el oído.", duracion: "15 min/día" },
-    { nombre: "Transcripción de fragmentos de audio", desc: "Anotar lo escuchado para fijar estructuras gramaticales.", duracion: "10 min/sesión" },
-  ],
-  vocabulario: [
-    { nombre: "5 nuevas palabras en contexto", desc: "Creación de frases propias con el nuevo léxico del día.", duracion: "5 min/día" },
-    { nombre: "Repaso de notas fonéticas", desc: "Revisar los términos corregidos por el MindTwin.", duracion: "5 min/día" },
-  ],
-  recordatorios: [],
-};
+const HABITOS_DOCENTES = [
+  { nombre: "Conversación con Teacher MindTwin", desc: "Práctica de fluidez oral y pronunciación guiada en inglés.", duracion: "20 min/día", nivel: "Todos los niveles" },
+  { nombre: "Lectura en voz alta con IPA", desc: "Enfoque en fonética, enlaces de palabras y ritmo natural.", duracion: "10 min/día", nivel: "B1 - C1" },
+  { nombre: "Escucha activa de podcast nativo", desc: "Comprensión auditiva contextualizada sin subtítulos.", duracion: "15 min/día", nivel: "A2 - C2" },
+  { nombre: "Fijación de 5 palabras en contexto", desc: "Creación de frases prácticas con el vocabulario corregido.", duracion: "5 min/día", nivel: "A1 - C2" },
+  { nombre: "Simulación de Roleplay / Entrevista", desc: "Preparación de situaciones laborales, viajes o reuniones.", duracion: "15 min/sesión", nivel: "B2 - C2" },
+];
 
+const DIAS_SEMANA = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const FRECUENCIAS = [1, 2, 3, 5, 7];
 
 export default function MisHabitos() {
   const { twin, guardar } = useTwin();
-  const [modulo, setModulo] = useState<Modulo>("speaking");
-  const [subTab, setSubTab] = useState<"habitos" | "evaluacion" | "estadisticas">("habitos");
+  const [activeTab, setActiveTab] = useState<TabKey>("habitos");
 
+  // Estados Alertas
   const [recTexto, setRecTexto] = useState("");
   const [recFrecuencia, setRecFrecuencia] = useState(1);
   const [recHora, setRecHora] = useState("09:00");
   const [recCanal, setRecCanal] = useState<"email" | "whatsapp">("email");
   const [recGuardado, setRecGuardado] = useState(false);
 
+  // Estados Autoevaluación
   const [confianzaSpeaking, setConfianzaSpeaking] = useState(4);
-  const [adherenciaSemanal, setAdherenciaSemanal] = useState(5);
+  const [comprensionAuditiva, setComprensionAuditiva] = useState(4);
+  const [diasPracticados, setDiasPracticados] = useState(5);
   const [evalGuardada, setEvalGuardada] = useState(false);
 
   function guardarAlerta(e: React.FormEvent) {
@@ -72,66 +67,148 @@ export default function MisHabitos() {
 
   const recordatorios = twin?.recordatorios ?? [
     { id: "1", habito: "Práctica de Speaking diaria con Teacher MindTwin", frecuenciaDias: 1, hora: "09:00", canal: "email" },
-    { id: "2", habito: "Repaso semanal de vocabulario y notas fonéticas", frecuenciaDias: 7, hora: "19:00", canal: "whatsapp" },
+    { id: "2", habito: "Repaso semanal de vocabulario y notas fonéticas IPA", frecuenciaDias: 7, hora: "19:00", canal: "whatsapp" },
   ];
 
   return (
     <div className="relative mx-auto max-w-4xl space-y-6 pb-12">
+      {/* Cabecera con tamaño de letra estándar text-2xl */}
       <div className="border-b border-white/10 pb-4">
         <p className="text-[11px] font-bold uppercase tracking-widest text-[#1abc9c]">
-          Lili Speak · Metodología & Constancia
+          Lili Speak · Metodología & Práctica
         </p>
-        <h1 className="font-playfair text-3xl font-extrabold text-white">
-          Mis Hábitos de Aprendizaje
-        </h1>
+        <h2 className="font-playfair text-2xl font-bold text-white">
+          Mis Hábitos
+        </h2>
         <p className="text-xs text-white/60 mt-1">
-          Seguimiento de práctica lingüística, autoevaluaciones semanales y recordatorios de estudio.
+          Seguimiento de constancia, autoevaluaciones semanales y alertas de estudio.
         </p>
       </div>
 
+      {/* Menú de 5 opciones exactas */}
       <div className="flex flex-wrap gap-2">
-        {MODULOS.map((m) => (
+        {TABS.map((t) => (
           <button
-            key={m.key}
-            onClick={() => setModulo(m.key)}
+            key={t.key}
+            onClick={() => setActiveTab(t.key)}
             className={`rounded-full px-4 py-2 text-xs font-bold transition-all ${
-              modulo === m.key
+              activeTab === t.key
                 ? "bg-white text-black shadow-lg"
                 : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
             }`}
           >
-            {m.label}
+            {t.label}
           </button>
         ))}
       </div>
 
-      {modulo !== "recordatorios" && (
-        <div className="flex gap-2 border-b border-white/10 pb-2 text-xs">
-          <button
-            onClick={() => setSubTab("habitos")}
-            className={`pb-1 font-semibold ${subTab === "habitos" ? "border-b-2 border-[#1abc9c] text-white" : "text-white/50 hover:text-white"}`}
-          >
-            📋 Hábitos Sugeridos
-          </button>
-          <button
-            onClick={() => setSubTab("evaluacion")}
-            className={`pb-1 font-semibold ${subTab === "evaluacion" ? "border-b-2 border-[#1abc9c] text-white" : "text-white/50 hover:text-white"}`}
-          >
-            📝 Autoevaluación Semanal
-          </button>
-          <button
-            onClick={() => setSubTab("estadisticas")}
-            className={`pb-1 font-semibold ${subTab === "estadisticas" ? "border-b-2 border-[#1abc9c] text-white" : "text-white/50 hover:text-white"}`}
-          >
-            📊 Estadísticas de Práctica
-          </button>
+      {/* Contenido según la pestaña activa */}
+      {activeTab === "habitos" && (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {HABITOS_DOCENTES.map((h, idx) => (
+            <div key={idx} className="rounded-2xl border border-white/10 bg-black/40 p-5 backdrop-blur-xl">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-bold text-white">{h.nombre}</h4>
+                <span className="rounded-full bg-[#1abc9c]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#1abc9c]">
+                  {h.duracion}
+                </span>
+              </div>
+              <p className="mt-2 text-xs text-white/60 leading-relaxed">{h.desc}</p>
+              <div className="mt-3 border-t border-white/5 pt-2 text-[10px] text-white/40">
+                Nivel recomendado: <span className="text-white/70">{h.nivel}</span>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {modulo === "recordatorios" ? (
+      {activeTab === "constancia" && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-[#1abc9c]">Racha Activa</span>
+                <h3 className="text-xl font-extrabold text-white">14 días consecutivos de práctica</h3>
+              </div>
+              <span className="text-3xl">🔥</span>
+            </div>
+            <p className="text-xs text-white/60">
+              Has alcanzado tu objetivo del 85% de constancia este mes. La regularidad es la clave para la fluidez oral.
+            </p>
+
+            <div className="grid grid-cols-7 gap-2 pt-2 text-center">
+              {DIAS_SEMANA.map((d, i) => (
+                <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <span className="text-[10px] text-white/40">{d}</span>
+                  <div className="mt-2 flex justify-center">
+                    <span className={`h-3 w-3 rounded-full ${i < 5 ? "bg-[#1abc9c] shadow-[0_0_8px_#1abc9c]" : "bg-white/20"}`} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "autoevaluacion" && (
+        <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl space-y-5">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-white">Autoevaluación Semanal de Idiomas</h3>
+          <div>
+            <label className="block text-xs text-white/80 mb-2">Confianza y soltura al hablar en inglés (1 a 5):</label>
+            <input
+              type="range" min="1" max="5" value={confianzaSpeaking}
+              onChange={(e) => setConfianzaSpeaking(Number(e.target.value))}
+              className="w-full accent-[#1abc9c]"
+            />
+            <div className="flex justify-between text-[10px] text-white/40 mt-1">
+              <span>1 (Inseguro)</span>
+              <span className="font-bold text-[#1abc9c]">{confianzaSpeaking}/5</span>
+              <span>5 (Muy fluido)</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs text-white/80 mb-2">Comprensión auditiva en conversaciones reales (1 a 5):</label>
+            <input
+              type="range" min="1" max="5" value={comprensionAuditiva}
+              onChange={(e) => setComprensionAuditiva(Number(e.target.value))}
+              className="w-full accent-[#1abc9c]"
+            />
+            <div className="flex justify-between text-[10px] text-white/40 mt-1">
+              <span>1 (Dificultad alta)</span>
+              <span className="font-bold text-[#1abc9c]">{comprensionAuditiva}/5</span>
+              <span>5 (Excelente comprensión)</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs text-white/80 mb-2">Días dedicados a la práctica esta semana:</label>
+            <input
+              type="range" min="1" max="7" value={diasPracticados}
+              onChange={(e) => setDiasPracticados(Number(e.target.value))}
+              className="w-full accent-[#1abc9c]"
+            />
+            <div className="flex justify-between text-[10px] text-white/40 mt-1">
+              <span>1 día</span>
+              <span className="font-bold text-[#1abc9c]">{diasPracticados} días / semana</span>
+              <span>7 días</span>
+            </div>
+          </div>
+
+          <button
+            onClick={guardarEvaluacion}
+            className="rounded-lg bg-[#1abc9c] px-4 py-2 text-xs font-bold text-black hover:bg-[#16a085] transition-all"
+          >
+            Guardar Autoevaluación
+          </button>
+          {evalGuardada && <span className="ml-3 text-xs text-emerald-400 font-bold">✓ Calibración semanal actualizada</span>}
+        </div>
+      )}
+
+      {activeTab === "alertas" && (
         <div className="space-y-6">
           <form onSubmit={guardarAlerta} className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl space-y-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-white">Configurar Nuevo Recordatorio</h3>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-white">Configurar Nueva Alerta o Recordatorio</h3>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label className="block text-xs text-white/60 mb-1">Hábito o Tarea:</label>
@@ -139,7 +216,7 @@ export default function MisHabitos() {
                   type="text"
                   value={recTexto}
                   onChange={(e) => setRecTexto(e.target.value)}
-                  placeholder="ej: Practicar 15 min de Speaking"
+                  placeholder="ej: Practicar 20 min de Speaking"
                   className="w-full rounded-lg border border-white/10 bg-white/5 p-2.5 text-xs text-white placeholder-white/40 focus:border-[#1abc9c] focus:outline-none"
                   required
                 />
@@ -182,13 +259,13 @@ export default function MisHabitos() {
               type="submit"
               className="rounded-lg bg-[#1abc9c] px-4 py-2 text-xs font-bold text-black hover:bg-[#16a085] transition-all shadow-md"
             >
-              Guardar Recordatorio
+              Guardar Alerta
             </button>
-            {recGuardado && <span className="ml-3 text-xs text-emerald-400 font-bold">✓ Recordatorio guardado correctamente</span>}
+            {recGuardado && <span className="ml-3 text-xs text-emerald-400 font-bold">✓ Alerta guardada correctamente</span>}
           </form>
 
           <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-white/50">Recordatorios Activos</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-white/50">Alertas y Recordatorios Activos</h3>
             <div className="divide-y divide-white/5 rounded-2xl border border-white/10 bg-black/40 p-4 backdrop-blur-xl">
               {recordatorios.map((r, i) => (
                 <div key={r.id || i} className="py-3 flex items-center justify-between">
@@ -202,63 +279,12 @@ export default function MisHabitos() {
             </div>
           </div>
         </div>
-      ) : subTab === "habitos" ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {(HABITOS_SUGERIDOS[modulo] ?? []).map((h, idx) => (
-            <div key={idx} className="rounded-2xl border border-white/10 bg-black/40 p-5 backdrop-blur-xl">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-bold text-white">{h.nombre}</h4>
-                <span className="rounded-full bg-[#1abc9c]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#1abc9c]">
-                  {h.duracion}
-                </span>
-              </div>
-              <p className="mt-2 text-xs text-white/60 leading-relaxed">{h.desc}</p>
-            </div>
-          ))}
-        </div>
-      ) : subTab === "evaluacion" ? (
-        <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl space-y-5">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-white">Autoevaluación Semanal de Idiomas</h3>
-          <div>
-            <label className="block text-xs text-white/80 mb-2">Confianza y soltura al hablar en inglés esta semana (1 a 5):</label>
-            <input
-              type="range" min="1" max="5" value={confianzaSpeaking}
-              onChange={(e) => setConfianzaSpeaking(Number(e.target.value))}
-              className="w-full accent-[#1abc9c]"
-            />
-            <div className="flex justify-between text-[10px] text-white/40 mt-1">
-              <span>1 (Muy inseguro)</span>
-              <span className="font-bold text-[#1abc9c]">{confianzaSpeaking}/5</span>
-              <span>5 (Muy fluido)</span>
-            </div>
-          </div>
+      )}
 
-          <div>
-            <label className="block text-xs text-white/80 mb-2">Adherencia al plan de estudio (días practicados esta semana):</label>
-            <input
-              type="range" min="1" max="7" value={adherenciaSemanal}
-              onChange={(e) => setAdherenciaSemanal(Number(e.target.value))}
-              className="w-full accent-[#1abc9c]"
-            />
-            <div className="flex justify-between text-[10px] text-white/40 mt-1">
-              <span>1 día</span>
-              <span className="font-bold text-[#1abc9c]">{adherenciaSemanal} días / semana</span>
-              <span>7 días</span>
-            </div>
-          </div>
-
-          <button
-            onClick={guardarEvaluacion}
-            className="rounded-lg bg-[#1abc9c] px-4 py-2 text-xs font-bold text-black hover:bg-[#16a085] transition-all"
-          >
-            Guardar Autoevaluación
-          </button>
-          {evalGuardada && <span className="ml-3 text-xs text-emerald-400 font-bold">✓ Calibración semanal actualizada</span>}
-        </div>
-      ) : (
+      {activeTab === "estadisticas" && (
         <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl space-y-4">
           <h3 className="text-sm font-bold uppercase tracking-wider text-white">Evolución de Práctica Conversacional</h3>
-          <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
             <div className="rounded-xl border border-white/5 bg-white/5 p-4">
               <span className="text-[10px] text-white/40 uppercase">Horas este mes</span>
               <p className="text-2xl font-extrabold text-[#1abc9c] mt-1">12.5 h</p>

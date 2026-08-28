@@ -8,11 +8,11 @@ export async function GET(req: NextRequest) {
   const code = params.get("code");
   const ownerId = params.get("state");
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://mindtwin-app.vercel.app";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://lili-speak-demo.vercel.app");
   const destino = new URL("/app/fuentes", appUrl);
 
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const clientId = process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_OAUTH_CLIENT_ID || process.env.GMAIL_API_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_OAUTH_CLIENT_SECRET || process.env.GMAIL_API_CLIENT_SECRET;
   const supabase = getSupabaseAdmin();
   if (!supabase || !code || !ownerId || !clientId || !clientSecret) {
     destino.searchParams.set("google_error", "1");
@@ -49,29 +49,38 @@ export async function GET(req: NextRequest) {
     // sigue sin email — se guarda la conexión igualmente
   }
 
-  const { data: existente } = await supabase
-    .from("twin_profiles")
-    .select("id, demo_twin")
-    .eq("owner_id", ownerId)
-    .is("follower_id", null)
-    .maybeSingle();
+  try {
+    const { data: teacherExistente } = await supabase
+      .from("teacher_mindtwin_profiles")
+      .select("id, ego_id")
+      .eq("owner_id", ownerId)
+      .maybeSingle();
 
-  const twinActual = (existente?.demo_twin as DemoTwin | undefined) ?? ({} as DemoTwin);
-  const twinActualizado: DemoTwin = {
-    ...twinActual,
-    sources: { ...twinActual.sources, google: true },
-    sources_data: {
-      ...twinActual.sources_data,
-      google: { detalle: email || "Cuenta de Google conectada", conectadoEn: new Date().toISOString() },
-    },
-  };
+    if (teacherExistente) {
+      const egoActual = (teacherExistente.ego_id as Record<string, any>) || {};
+      const fuentesActuales = egoActual.sources || {};
+      const fuentesDataActuales = egoActual.sources_data || {};
 
-  if (existente) {
-    await supabase.from("twin_profiles").update({ demo_twin: twinActualizado, updated_at: new Date().toISOString() }).eq("id", existente.id);
-  } else {
-    await supabase.from("twin_profiles").insert({ owner_id: ownerId, demo_twin: twinActualizado });
+      await supabase
+        .from("teacher_mindtwin_profiles")
+        .update({
+          ego_id: {
+            ...egoActual,
+            sources: { ...fuentesActuales, google: true },
+            sources_data: {
+              ...fuentesDataActuales,
+              google: { detalle: email || "Cuenta de Google conectada (YouTube, Drive, Gmail)", conectadoEn: new Date().toISOString() },
+            },
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", teacherExistente.id);
+    }
+  } catch (err) {
+    console.error("Error actualizando teacher profile:", err);
   }
 
   destino.searchParams.set("google_conectado", "1");
+  destino.searchParams.set("email", encodeURIComponent(email));
   return NextResponse.redirect(destino);
 }
