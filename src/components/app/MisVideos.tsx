@@ -5,10 +5,9 @@ import type { VariantePV, VideoJobResult } from "@/lib/videos/pipeline";
 import { useOwnerSession } from "@/lib/session/useOwnerSession";
 
 const VARIANTES: Array<{ key: VariantePV; nombre: string; desc: string; cuando: string }> = [
-  { key: "v3", nombre: "V1 · Hablas a cámara", desc: "Tu cara y busto, con la boca sincronizada a lo que dices.", cuando: "Úsalo para Reels o TikToks donde explicas algo mirando a cámara." },
-  { key: "v4", nombre: "V2 · Cuerpo en acción", desc: "Tu cuerpo completo en movimiento, sin que hables a cámara.", cuando: "Úsalo para vídeos de ejercicio, técnica deportiva o demostraciones físicas." },
-  { key: "combo", nombre: "V1+V2 · Combinado", desc: "Empieza en acción (V2), continúa hablando a cámara (V1) y cierra en acción otra vez.", cuando: "El formato recomendado: capta la atención con movimiento y explica con tu cara." },
-  { key: "heygen", nombre: "HeyGen · Máxima calidad", desc: "Tu Digital Twin de HeyGen, entrenado con un vídeo real tuyo de 2 minutos.", cuando: "El más realista, pero necesitas haberlo entrenado antes en heygen.com y guardado tu avatar_id/voice_id." },
+  { key: "v3", nombre: "V1 · Hablas a cámara", desc: "Tu cara y busto, con la boca sincronizada a lo que dices.", cuando: "Úsalo para Reels o TikToks donde explicas vocabulario o pronunciación mirando a cámara." },
+  { key: "v4", nombre: "V2 · Acción y Pizarra", desc: "Explicaciones visuales y demostraciones didácticas.", cuando: "Úsalo para píldoras pedagógicas y dinámicas de clase." },
+  { key: "combo", nombre: "V1+V2 · Combinado", desc: "Empieza en acción (V2), continúa hablando a cámara (V1) y cierra en acción otra vez.", cuando: "El formato recomendado: capta la atención y explica tu lección." },
 ];
 
 const PASOS = [
@@ -105,7 +104,7 @@ export default function MisVideos() {
         </ol>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-3">
         {VARIANTES.map((v) => (
           <button
             key={v.key}
@@ -123,7 +122,7 @@ export default function MisVideos() {
       </div>
 
       <div className="mt-glass p-4">
-        <p className="mb-3 text-xs font-bold uppercase tracking-wide text-white/50">Elige qué quieres generar</p>
+        <p className="mb-3 text-xs font-bold uppercase tracking-wide text-white/50">Elige qué formato quieres generar</p>
         <div className="flex flex-wrap gap-2">
           {VARIANTES.map((v) => (
             <button

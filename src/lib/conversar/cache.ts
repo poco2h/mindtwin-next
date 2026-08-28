@@ -11,7 +11,7 @@ const CACHE: Array<{ match: RegExp; respuesta: string }> = [
   {
     match: /c[oó]mo funciona (esto|mindtwin|el twin)/i,
     respuesta:
-      "Soy el gemelo cerebral de tu profesional: replico su forma de pensar y comunicar. Puedes escribirme, hablarme o hacer videollamada cuando quieras.",
+      "Soy el gemelo cerebral de tu profesional: replico su forma de pensar y comunicar. Puedes escribirme o hablarme cuando quieras.",
   },
   {
     match: /eres (una )?ia|eres humano/i,

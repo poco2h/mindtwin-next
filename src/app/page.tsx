@@ -148,7 +148,7 @@ export default function FollowerLanding() {
               ¿Qué es MindTwins · Lili Speak?
             </p>
             <h2 className="mt-3 font-serif text-3xl md:text-4xl">
-              Tu profesor de idiomas. Su gemelo digital, disponible 24/7.
+              Tu profesor de idiomas. Su gemelo cerebral, disponible 24/7.
             </h2>
             <div className="mt-10 grid gap-6 md:grid-cols-2">
               {PASOS.map((p) => (

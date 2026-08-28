@@ -171,14 +171,6 @@ export default function ConversarChat({
 
   return (
     <div className="relative mx-auto flex h-[calc(100vh-140px)] max-w-4xl flex-col rounded-2xl border border-white/10 bg-black/40 p-4 backdrop-blur-xl shadow-2xl">
-      {/* Barra superior: SOLO en versión Follower (para mostrar bolsa de minutos) o si hay canal de voz/video activo */}
-      {role === "follower" && (
-        <div className="mb-3 flex items-center justify-end">
-          <div className="rounded-full border border-white/10 bg-black/60 px-3.5 py-1 text-xs text-white/70">
-            Bolsa: <span className="font-bold text-[#1abc9c]">15.67 min</span> disponibles
-          </div>
-        </div>
-      )}
 
       {/* Contenido según el canal activo */}
       {canal === "voz" ? (
@@ -325,6 +317,13 @@ export default function ConversarChat({
               </svg>
             </button>
           </form>
+
+          {/* Bolsa de minutos abajo a la derecha */}
+          <div className="mt-2 flex items-center justify-end">
+            <div className="rounded-full border border-white/10 bg-black/60 px-3 py-1 text-[11px] text-white/70 shadow-md">
+              Bolsa: <span className="font-bold text-[#1abc9c]">15.67 min</span> disponibles
+            </div>
+          </div>
         </>
       )}
     </div>

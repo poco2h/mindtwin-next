@@ -84,9 +84,9 @@ export default function MisFollowers() {
           <p className="text-[11px] font-bold uppercase tracking-widest text-[#1abc9c]">
             Gestión Docente
           </p>
-          <h1 className="font-playfair text-3xl font-extrabold text-white">
-            Mis Followers & Alumnos
-          </h1>
+          <h2 className="font-playfair text-2xl font-bold text-white">
+            Mis Alumnos
+          </h2>
           <p className="text-xs text-white/60 mt-1">
             Alumnos que conversan, practican y aprenden con tu Teacher MindTwin.
           </p>
@@ -104,13 +104,13 @@ export default function MisFollowers() {
         </div>
       </div>
 
-      {/* Tabla de Alumnos / Followers */}
+      {/* Tabla de Alumnos */}
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl">
         <div className="overflow-x-auto p-4">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wider text-white/40">
-                <th className="py-3 px-3 font-semibold">Alumno / Follower</th>
+                <th className="py-3 px-3 font-semibold">Alumno</th>
                 <th className="py-3 px-3 font-semibold">Nivel MCER</th>
                 <th className="py-3 px-3 font-semibold">Sesión Actual</th>
                 <th className="py-3 px-3 font-semibold">Fecha de Alta</th>

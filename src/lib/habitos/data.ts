@@ -25,7 +25,7 @@ export const MI_SCHOOL = [
   },
   {
     pregunta: "Mis Conversaciones — ¿cómo funciona?",
-    respuesta: "Es el espacio de práctica lingüística en texto, voz y videollamada. Como alumno, recibes feedback inmediato: correcciones de frases, pronunciación fonética IPA y notas pedagógicas en español de apoyo.",
+    respuesta: "Es el espacio de práctica lingüística en texto y voz. Como alumno, recibes feedback inmediato: correcciones de frases, pronunciación fonética IPA y notas pedagógicas en español de apoyo.",
   },
   {
     pregunta: "¿Cómo se estructuran los Niveles MCER?",
