@@ -82,7 +82,7 @@ export default function ProfesionalesLanding() {
                 Para profesores particulares · academias · docentes de idiomas
               </p>
               <h1 className="mt-8 font-serif text-[42px] leading-[1.05] font-normal text-black md:text-[52px] md:leading-[1.05]">
-                Tu doble digital docente.
+                Tu gemelo cerebral docente.
                 <br />
                 <em className="font-normal not-italic text-[rgb(99,99,99)]">Sin límite de alumnos.</em>
               </h1>
