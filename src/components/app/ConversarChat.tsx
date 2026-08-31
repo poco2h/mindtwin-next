@@ -34,14 +34,14 @@ function now() {
 
 function saludoOnboardingOwner(ownerName: string) {
   return (
-    `Hola, ${ownerName}. Soy tu Teacher MindTwin.\n\n` +
-    "Para calibrar tu gemelo pedagógico de idiomas, completaremos 4 sesiones guiadas:\n" +
-    "• Sesión 1: Metodología pedagógica · Eneagrama · Apego y motivación\n" +
-    "• Sesión 2: Idiomas impartidos · Niveles MCER · Especialidades docentes\n" +
-    "• Sesión 3: Estilo de corrección · Fonética IPA · Clonación de voz\n" +
-    "• Sesión 4: Tus materiales de clase y packs didácticos\n\n" +
-    "Responde con sinceridad — solo tú verás esto. Si te cansas, dímelo y seguimos cuando quieras.\n\n" +
-    "¿Empezamos con la Sesión 1?"
+    `Hola, ${ownerName}. Bienvenido al panel de entrenamiento y calibración de tu Teacher MindTwin.\n\n` +
+    "Para que tu clon replique con total fidelidad tu criterio pedagógico con tus alumnos, completaremos 4 fases de configuración guiada:\n" +
+    "• Fase 1 · EGO ID Docente: Tu arquetipo pedagógico, tono comunicativo y filosofía de enseñanza.\n" +
+    "• Fase 2 · Especialidades y Niveles: Idiomas impartidos, preparación de exámenes oficiales (Cambridge, IELTS) e inglés profesional.\n" +
+    "• Fase 3 · Protocolo de Corrección y Voz: Nivel de exigencia fonética (IPA), estilo de feedback y sincronización de tu voz clonada.\n" +
+    "• Fase 4 · Materiales y Packs: Conexión de tus fuentes, libros de texto y recursos didácticos.\n\n" +
+    "Esta sesión es privada y exclusiva para ti como docente.\n\n" +
+    "¿Comenzamos configurando tu EGO ID Docente (Fase 1)?"
   );
 }
 
@@ -64,21 +64,13 @@ function saludoInicial(role: "owner" | "follower", ownerName: string, onboarding
       ? `Hello! I'm ${ownerName}'s Teacher MindTwin. What would you like to practice in English today?`
       : saludoOnboardingFollower(ownerName);
   }
-  return onboardingCompleto
-    ? `Hola, ${ownerName}. Soy tu Teacher MindTwin. ¿En qué aspecto de tu metodología o packs de clase quieres trabajar hoy?`
-    : saludoOnboardingOwner(ownerName);
+  return saludoOnboardingOwner(ownerName);
 }
 
 const PROMPTS_SUGERIDOS_FOLLOWER = [
   "Could you explain the difference between 'make' and 'do'?",
   "Yesterday I went to the cinema and I wanted to practice past tense...",
   "I would like to practice vocabulary for a job interview in English.",
-];
-
-const PROMPTS_SUGERIDOS_OWNER = [
-  "¿Cuál es mi enfoque pedagógico principal?",
-  "¿Qué niveles MCER y tipos de clases imparto?",
-  "¿Cómo prefieres que corrijamos los errores de fonética a los alumnos?",
 ];
 
 function sanitizarTexto(t: any): string {
@@ -209,7 +201,7 @@ export default function ConversarChat({
             <span className="rounded-full bg-[#1abc9c]/20 border border-[#1abc9c]/30 px-3 py-1 text-xs font-bold text-[#1abc9c]">
               ⚙️ Calibración del MindTwin
             </span>
-            <span className="text-xs text-white/50">Sesiones pedagógicas de {ownerName}</span>
+            <span className="text-xs text-white/50">Sesión de Entrenamiento Docente · {ownerName}</span>
           </div>
         ) : (
           <div className="flex items-center gap-2">
@@ -289,7 +281,7 @@ export default function ConversarChat({
                 >
                   {m.text}
 
-                  {/* Widgets de correcciones para follower */}
+                  {/* Widgets de correcciones solo en follower */}
                   {role === "follower" && m.correcciones && m.correcciones.length > 0 && (
                     <div className="mt-3 space-y-2 border-t border-white/10 pt-2 text-xs">
                       <div className="font-bold text-amber-300">💡 Sugerencia pedagógica:</div>
@@ -332,10 +324,10 @@ export default function ConversarChat({
             )}
           </div>
 
-          {/* Prompts sugeridos: Owner (calibración) vs Follower (práctica inglés) */}
-          {messages.length <= 2 && (
+          {/* Prompts sugeridos: SOLO en Follower (en Owner no se muestra ninguna píldora) */}
+          {role === "follower" && messages.length <= 2 && (
             <div className="my-2 flex flex-wrap gap-1.5">
-              {(role === "owner" ? PROMPTS_SUGERIDOS_OWNER : PROMPTS_SUGERIDOS_FOLLOWER).map((p, idx) => (
+              {PROMPTS_SUGERIDOS_FOLLOWER.map((p, idx) => (
                 <button
                   key={idx}
                   onClick={() => enviarTexto(p)}
@@ -370,7 +362,7 @@ export default function ConversarChat({
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={role === "owner" ? "Responde a tu MindTwin para calibrar tu clon..." : "Escribe un mensaje en inglés..."}
+                placeholder={role === "owner" ? "Escribe para calibrar tu MindTwin (ej. 'Mi metodología se basa en enfoque comunicativo directo')..." : "Escribe un mensaje en inglés..."}
                 disabled={sending}
                 className="w-full rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm text-white placeholder-white/40 focus:border-[#1abc9c] focus:outline-none focus:ring-1 focus:ring-[#1abc9c] disabled:opacity-50"
               />
