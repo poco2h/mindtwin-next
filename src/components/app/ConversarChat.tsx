@@ -194,16 +194,9 @@ export default function ConversarChat({
 
   return (
     <div className="relative mx-auto flex h-[calc(100vh-140px)] max-w-4xl flex-col rounded-2xl border border-white/10 bg-black/40 p-4 backdrop-blur-xl shadow-2xl">
-      {/* Cabecera de Conversaciones: Owner (Calibración) vs Follower (Selector de Clase/Traducción) */}
-      <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-3">
-        {role === "owner" ? (
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-[#1abc9c]/20 border border-[#1abc9c]/30 px-3 py-1 text-xs font-bold text-[#1abc9c]">
-              ⚙️ Calibración del MindTwin
-            </span>
-            <span className="text-xs text-white/50">Sesión de Entrenamiento Docente · {ownerName}</span>
-          </div>
-        ) : (
+      {/* Cabecera de Conversaciones: Solo en Follower para selector de Clase / Traducción */}
+      {role === "follower" && (
+        <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-3">
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -229,8 +222,8 @@ export default function ConversarChat({
               🌐 Traducción Simultánea
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Contenido según el modo activo */}
       {role === "follower" && modoConversacion === "traduccion" ? (
