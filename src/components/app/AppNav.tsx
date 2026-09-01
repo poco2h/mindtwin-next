@@ -18,6 +18,7 @@ const LINKS_OWNER = [
 
 const LINKS_FOLLOWER = [
   { href: "/app/conversar?role=follower", label: "Mis Conversaciones", icon: "💬" },
+  { href: "/app/traduccion?role=follower", label: "Traducción Simultánea", icon: "🌐" },
   { href: "/app/fuentes?role=follower", label: "Mis Fuentes", icon: "📂" },
   { href: "/app/cerebro?role=follower", label: "Mi Cerebro", icon: "🧠" },
   { href: "/app/habitos?role=follower", label: "Mis Hábitos", icon: "💚" },

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import VideollamadaPanel from "./VideollamadaPanel";
 import VozPanel from "./VozPanel";
-import TraduccionSimultaneaPanel from "./TraduccionSimultaneaPanel";
 import { leerMarcas } from "@/lib/demo/marcas";
 import { useSessionBilling } from "@/lib/billing/useSessionBilling";
 import type { Canal as CanalBilling } from "@/lib/billing/pricing";
@@ -111,7 +110,6 @@ export default function ConversarChat({
   onboardingCompleto?: boolean;
   sesionActual?: "S1" | "S2" | "S3" | "S4";
 }) {
-  const [modoConversacion, setModoConversacion] = useState<"clase" | "traduccion">("clase");
   const [canal, setCanal] = useState<Canal>(canalInicial ?? "texto");
   const [messages, setMessages] = useState<Msg[]>([
     { who: "MindTwin", time: now(), text: saludoInicial(role, ownerName, onboardingCompleto) },
@@ -194,43 +192,7 @@ export default function ConversarChat({
 
   return (
     <div className="relative mx-auto flex h-[calc(100vh-140px)] max-w-4xl flex-col rounded-2xl border border-white/10 bg-black/40 p-4 backdrop-blur-xl shadow-2xl">
-      {/* Cabecera de Conversaciones: Solo en Follower para selector de Clase / Traducción */}
-      {role === "follower" && (
-        <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-3">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setModoConversacion("clase")}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
-                modoConversacion === "clase"
-                  ? "bg-white text-black shadow-md"
-                  : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
-              }`}
-            >
-              💬 Práctica de Clase
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setModoConversacion("traduccion")}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
-                modoConversacion === "traduccion"
-                  ? "bg-[#1abc9c] text-black shadow-md"
-                  : "bg-white/10 text-white/70 hover:bg-[#1abc9c]/20 hover:text-white"
-              }`}
-            >
-              🌐 Traducción Simultánea
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Contenido según el modo activo */}
-      {role === "follower" && modoConversacion === "traduccion" ? (
-        <div className="flex-1 overflow-hidden">
-          <TraduccionSimultaneaPanel />
-        </div>
-      ) : canal === "voz" ? (
+      {canal === "voz" ? (
         <div className="flex-1 overflow-y-auto">
           <VozPanel
             ownerName={ownerName}
