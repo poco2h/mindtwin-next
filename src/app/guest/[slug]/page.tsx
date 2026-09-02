@@ -84,6 +84,37 @@ export default function GuestRoomPage() {
     return () => clearInterval(interval);
   }, [llamadaFinalizada, errorEstado]);
 
+  // Polling en tiempo real para sincronizar lo que dice el alumno (Follower)
+  useEffect(() => {
+    if (!room?.room_id || llamadaFinalizada || errorEstado) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/mindtwin/terceros/sync/${room.room_id}`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // Si el alumno cuelga la llamada, reflejar el fin de la sesión
+        if (data.room?.status === "ended") {
+          setLlamadaFinalizada(true);
+          return;
+        }
+
+        if (data.turns && data.turns.length > 0) {
+          const followerTurns = data.turns.filter((t: any) => t.speaker === "follower");
+          if (followerTurns.length > 0) {
+            const last = followerTurns[followerTurns.length - 1];
+            setUltimoFollowerDice(last.original_text || last.originalText);
+            setUltimoTraducidoEspañol(last.translated_text || last.translatedText);
+          }
+        }
+      } catch (e) {
+        // Fallback silencioso
+      }
+    }, 1500);
+
+    return () => clearInterval(interval);
+  }, [room?.room_id, llamadaFinalizada, errorEstado]);
+
   const formatearTimer = (s: number) => {
     const min = Math.floor(s / 60).toString().padStart(2, "0");
     const seg = (s % 60).toString().padStart(2, "0");

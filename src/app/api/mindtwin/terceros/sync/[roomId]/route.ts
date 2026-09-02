@@ -14,7 +14,7 @@ export async function GET(
       );
     }
 
-    const estado = obtenerEstadoSala(roomId);
+    const estado = await obtenerEstadoSala(roomId);
     return NextResponse.json(estado);
   } catch (error: any) {
     return NextResponse.json(

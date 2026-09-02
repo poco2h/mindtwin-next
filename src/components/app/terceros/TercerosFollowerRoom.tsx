@@ -92,6 +92,45 @@ export default function TercerosFollowerRoom({
     return () => clearInterval(interval);
   }, []);
 
+  // Polling en tiempo real para sincronizar turnos del interlocutor en directo
+  useEffect(() => {
+    if (!roomId) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/mindtwin/terceros/sync/${roomId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.turns && data.turns.length > 0) {
+          const remoteTurns: Turno[] = data.turns.map((t: any) => ({
+            id: t.id,
+            speaker: t.speaker,
+            mode: t.mode,
+            originalText: t.original_text,
+            translatedText: t.translated_text,
+            time: t.created_at
+              ? new Date(t.created_at).toLocaleTimeString([], { minute: "2-digit", second: "2-digit" })
+              : "00:00",
+            chips: t.ling_feedback?.chips,
+            audioBase64: t.audio_base64,
+          }));
+
+          setTurnos(remoteTurns);
+
+          const ultimosGuest = remoteTurns.filter((t) => t.speaker === "guest");
+          if (ultimosGuest.length > 0) {
+            const last = ultimosGuest[ultimosGuest.length - 1];
+            setUltimoGuestDice(last.originalText);
+            setUltimoFollowerTraducido(last.translatedText);
+          }
+        }
+      } catch (e) {
+        // Fallback silencioso
+      }
+    }, 1500);
+
+    return () => clearInterval(interval);
+  }, [roomId]);
+
   const formatearTimer = (seg: number) => {
     const m = Math.floor(seg / 60).toString().padStart(2, "0");
     const s = (seg % 60).toString().padStart(2, "0");
