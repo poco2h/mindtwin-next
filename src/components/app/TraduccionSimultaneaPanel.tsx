@@ -17,9 +17,14 @@ export default function TraduccionSimultaneaPanel() {
   const [roomId, setRoomId] = useState<string>("");
   const [guestUrl, setGuestUrl] = useState<string>("");
   const [guestSlug, setGuestSlug] = useState<string>("");
-  const [langFollower, setLangFollower] = useState<string>("zh");
+  const [langFollower, setLangFollower] = useState<string>("en");
   const [langGuest, setLangGuest] = useState<string>("es");
   const [privacy, setPrivacy] = useState<boolean>(true);
+
+  // WebRTC Agora
+  const [agoraChannel, setAgoraChannel] = useState<string>("");
+  const [agoraTokenFollower, setAgoraTokenFollower] = useState<string>("");
+  const [appId, setAppId] = useState<string>("");
 
   // Datos acumulados de la sesión y reporte
   const [turnosFinales, setTurnosFinales] = useState<any[]>([]);
@@ -54,9 +59,11 @@ export default function TraduccionSimultaneaPanel() {
         setRoomId(data.room_id);
         setGuestUrl(data.guest_url);
         setGuestSlug(data.guest_slug);
+        setAgoraChannel(data.agora_channel || "");
+        setAgoraTokenFollower(data.agora_token_follower || "");
+        setAppId(data.app_id || "a3ff88591ae541f8994a8c59ef302fcd");
         setPantallaActual("link");
       } else {
-        // Fallback local
         const fallbackId = crypto.randomUUID();
         const fallbackSlug = Math.random().toString(36).substring(2, 12);
         const origin = typeof window !== "undefined" ? window.location.origin : "https://app.lilispeak.com";
@@ -89,7 +96,6 @@ export default function TraduccionSimultaneaPanel() {
     setTurnosFinales(stats.turnos);
     setCargando(true);
 
-    // Descontar minutos consumidos (1 min de llamada = 1 min de pack)
     const minutosConsumidos = Math.max(1, Math.ceil(stats.duracionSegundos / 60));
     setMinutosDisponibles((prev) => Math.max(0, prev - minutosConsumidos));
 
@@ -189,6 +195,9 @@ export default function TraduccionSimultaneaPanel() {
           langFollower={langFollower}
           langGuest={langGuest}
           privacy={privacy}
+          agoraChannel={agoraChannel}
+          agoraTokenFollower={agoraTokenFollower}
+          appId={appId}
           onColgar={handleColgarLlamada}
         />
       )}

@@ -8,6 +8,8 @@ import MyliliFooter from "@/components/app/terceros/MyliliFooter";
 interface RoomData {
   room_id: string;
   agora_channel: string;
+  agora_token_guest?: string;
+  app_id?: string;
   lang_follower: string;
   lang_guest: string;
   follower_display_name: string;
@@ -22,6 +24,10 @@ export default function GuestRoomPage() {
   const [errorEstado, setErrorEstado] = useState<string | null>(null);
   const [room, setRoom] = useState<RoomData | null>(null);
 
+  // WebRTC Agora
+  const [isWebRtcConnected, setIsWebRtcConnected] = useState(false);
+  const [isFollowerAudioActive, setIsFollowerAudioActive] = useState(false);
+
   // Timer de llamada
   const [segundos, setSegundos] = useState(0);
   const [llamadaFinalizada, setLlamadaFinalizada] = useState(false);
@@ -33,14 +39,17 @@ export default function GuestRoomPage() {
 
   // Mensajes mostrados en vivo
   const [ultimoFollowerDice, setUltimoFollowerDice] = useState<string>(
-    "你好，很高兴能与你交流！"
+    "Esperando que tu contacto hable..."
   );
   const [ultimoTraducidoEspañol, setUltimoTraducidoEspañol] = useState<string>(
-    "¡Hola! Qué gusto poder hablar contigo."
+    "Aquí aparecerá la traducción simultánea en español en tiempo real."
   );
 
   const recognitionRef = useRef<any>(null);
+  const agoraClientRef = useRef<any>(null);
+  const localAudioTrackRef = useRef<any>(null);
 
+  // 1. Cargar metadatos de la sala
   useEffect(() => {
     async function cargarSala() {
       if (!slug) return;
@@ -52,17 +61,13 @@ export default function GuestRoomPage() {
           setErrorEstado(data.message || "Este enlace no es válido o ha expirado.");
         } else {
           setRoom(data);
-          if (data.lang_follower !== "zh") {
-            setUltimoFollowerDice("Hello! I am very happy to talk with you today.");
-            setUltimoTraducidoEspañol("¡Hola! Me alegra mucho hablar contigo hoy.");
-          }
         }
       } catch (err) {
-        // Fallback para pruebas locales
+        console.warn("Error cargando sala guest:", err);
         setRoom({
           room_id: "demo-room-123",
           agora_channel: "demo-channel",
-          lang_follower: "zh",
+          lang_follower: "en",
           lang_guest: "es",
           follower_display_name: "Ana",
           status: "active",
@@ -75,7 +80,67 @@ export default function GuestRoomPage() {
     cargarSala();
   }, [slug]);
 
-  // Timer en vivo
+  // 2. Inicializar Agora RTC WebRTC para audio bidireccional en el invitado
+  useEffect(() => {
+    let mounted = true;
+
+    async function initAgoraGuest() {
+      if (!room?.agora_channel || !room?.app_id || llamadaFinalizada) return;
+      try {
+        const AgoraRTCModule = await import("agora-rtc-sdk-ng");
+        const AgoraRTC = AgoraRTCModule.default || AgoraRTCModule;
+        AgoraRTC.setLogLevel(3);
+
+        const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+        agoraClientRef.current = client;
+
+        client.on("user-published", async (user: any, mediaType: string) => {
+          await client.subscribe(user, mediaType);
+          if (mediaType === "audio" && user.audioTrack) {
+            user.audioTrack.play();
+            setIsFollowerAudioActive(true);
+          }
+        });
+
+        client.on("user-unpublished", (user: any, mediaType: string) => {
+          if (mediaType === "audio") {
+            setIsFollowerAudioActive(false);
+          }
+        });
+
+        const uid = 2; // Interlocutor / Guest
+        await client.join(
+          room.app_id,
+          room.agora_channel,
+          room.agora_token_guest || null,
+          uid
+        );
+        setIsWebRtcConnected(true);
+
+        try {
+          const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+          localAudioTrackRef.current = audioTrack;
+          await client.publish([audioTrack]);
+        } catch (micErr) {
+          console.warn("[Agora RTC Guest] Permiso de micro:", micErr);
+        }
+      } catch (err) {
+        console.warn("[Agora RTC Guest] Error inicialización:", err);
+      }
+    }
+
+    if (room && !llamadaFinalizada) {
+      initAgoraGuest();
+    }
+
+    return () => {
+      mounted = false;
+      if (localAudioTrackRef.current) localAudioTrackRef.current.close();
+      if (agoraClientRef.current) agoraClientRef.current.leave().catch(() => {});
+    };
+  }, [room?.agora_channel, room?.agora_token_guest, room?.app_id, llamadaFinalizada]);
+
+  // 3. Timer en vivo
   useEffect(() => {
     if (llamadaFinalizada || errorEstado) return;
     const interval = setInterval(() => {
@@ -84,7 +149,7 @@ export default function GuestRoomPage() {
     return () => clearInterval(interval);
   }, [llamadaFinalizada, errorEstado]);
 
-  // Polling en tiempo real para sincronizar lo que dice el alumno (Follower)
+  // 4. Polling en tiempo real para sincronizar lo que dice el alumno (Follower)
   useEffect(() => {
     if (!room?.room_id || llamadaFinalizada || errorEstado) return;
     const interval = setInterval(async () => {
@@ -105,6 +170,10 @@ export default function GuestRoomPage() {
             const last = followerTurns[followerTurns.length - 1];
             setUltimoFollowerDice(last.original_text || last.originalText);
             setUltimoTraducidoEspañol(last.translated_text || last.translatedText);
+
+            if (last.audio_base64) {
+              reproducirAudioBase64(last.audio_base64);
+            }
           }
         }
       } catch (e) {
@@ -115,13 +184,22 @@ export default function GuestRoomPage() {
     return () => clearInterval(interval);
   }, [room?.room_id, llamadaFinalizada, errorEstado]);
 
+  const reproducirAudioBase64 = (b64: string) => {
+    try {
+      const snd = new Audio("data:audio/mp3;base64," + b64);
+      snd.play().catch(() => {});
+    } catch (e) {
+      console.warn("Error audio:", e);
+    }
+  };
+
   const formatearTimer = (s: number) => {
     const min = Math.floor(s / 60).toString().padStart(2, "0");
     const seg = (s % 60).toString().padStart(2, "0");
     return `${min}:${seg}`;
   };
 
-  // Reconocimiento de voz para el invitado (en español nativo)
+  // 5. Reconocimiento de voz para el invitado (en español nativo)
   useEffect(() => {
     if (typeof window !== "undefined") {
       const SpeechRecognition =
@@ -182,22 +260,13 @@ export default function GuestRoomPage() {
           room_id: room?.room_id || "demo-room-123",
           speaker: "guest",
           text: txt,
-          lang_follower: room?.lang_follower || "zh",
+          lang_follower: room?.lang_follower || "en",
           lang_guest: "es",
         }),
       });
 
       if (res.ok) {
-        // Enviar turno y simular réplica del alumno en su idioma objetivo
-        setTimeout(() => {
-          if (room?.lang_follower === "zh") {
-            setUltimoFollowerDice("好的，我完全理解你的意思，我们继续。");
-            setUltimoTraducidoEspañol("De acuerdo, entiendo perfectamente lo que dices, continuemos.");
-          } else {
-            setUltimoFollowerDice("Understood! Let us move forward with the next point.");
-            setUltimoTraducidoEspañol("¡Entendido! Avancemos con el siguiente punto.");
-          }
-        }, 1200);
+        // Turno guardado exitosamente
       }
     } catch (err) {
       console.warn("Error enviando voz guest:", err);
@@ -207,6 +276,8 @@ export default function GuestRoomPage() {
   };
 
   const handleColgar = () => {
+    if (localAudioTrackRef.current) localAudioTrackRef.current.close();
+    if (agoraClientRef.current) agoraClientRef.current.leave().catch(() => {});
     setLlamadaFinalizada(true);
   };
 
@@ -320,8 +391,13 @@ export default function GuestRoomPage() {
       {/* 3. Status Bar */}
       <div className="flex items-center justify-between border-b border-white/5 bg-black/40 px-4 py-2 text-[11px] text-white/60">
         <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-[#22c55e]" />
-          <span>{followerName} conectada · {room?.lang_follower?.toUpperCase() || "ZH"} ↔ ES</span>
+          <span className={`h-2 w-2 rounded-full ${isFollowerAudioActive || isWebRtcConnected ? "bg-[#22c55e]" : "bg-amber-400"}`} />
+          <span>{followerName} conectada · {room?.lang_follower?.toUpperCase() || "EN"} ↔ ES</span>
+          {isWebRtcConnected && (
+            <span className="rounded bg-[#22c55e]/20 px-1.5 py-0.5 text-[9px] font-bold text-[#22c55e]">
+              Audio WebRTC Activo
+            </span>
+          )}
         </div>
         <div className="font-mono text-white/80">
           ⏱️ {formatearTimer(segundos)}
@@ -331,11 +407,10 @@ export default function GuestRoomPage() {
       {/* 4. Contenido Principal / Paneles de Subtítulos */}
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-between p-4 md:p-6 space-y-4">
         <div className="space-y-3">
-          {/* Panel: "[Nombre] dice ([idioma])" con forma de onda animada */}
+          {/* Panel: "[Nombre] dice ([idioma])" */}
           <div className="rounded-2xl border border-white/10 bg-[#16171d] p-4 shadow-lg">
             <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-white/50 mb-2">
-              <span>🗣️ {followerName} dice ({room?.lang_follower?.toUpperCase() || "ZH"})</span>
-              {/* Forma de onda animada */}
+              <span>🗣️ {followerName} dice ({room?.lang_follower?.toUpperCase() || "EN"})</span>
               <div className="flex items-center gap-0.5 h-3">
                 <span className="w-1 bg-[#00bfa5] rounded-full animate-[pulse_1s_ease-in-out_infinite] h-2" />
                 <span className="w-1 bg-[#00bfa5] rounded-full animate-[pulse_1.2s_ease-in-out_infinite] h-3.5" />
@@ -361,8 +436,8 @@ export default function GuestRoomPage() {
           </div>
         </div>
 
-        {/* 5. Sección Micrófono para el Interlocutor */}
-        <div className="flex flex-col items-center justify-center py-4 space-y-3 text-center">
+        {/* 5. Sección Micrófono y Texto para el Interlocutor */}
+        <div className="flex flex-col items-center justify-center py-3 space-y-3 text-center">
           <div className="relative flex items-center justify-center">
             {isRecording && (
               <span className="absolute h-24 w-24 rounded-full bg-[#00bfa5]/30 animate-ping" />
@@ -382,7 +457,7 @@ export default function GuestRoomPage() {
 
           <div>
             <p className="text-xs font-bold text-white">
-              {isRecording ? "Escuchando... Habla con normalidad en español" : "Habla en español — se traduce automáticamente"}
+              {isRecording ? "Escuchando... Habla con normalidad en español" : "Habla en español o escribe abajo — se traduce automáticamente"}
             </p>
             <p className="text-[11px] text-white/50 mt-0.5">
               {followerName} lo escuchará y leerá en su idioma en tiempo real.
@@ -390,20 +465,20 @@ export default function GuestRoomPage() {
           </div>
 
           {/* Input de texto alternativo para escribir si no usa micrófono */}
-          <div className="w-full pt-2">
+          <div className="w-full pt-1">
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={inputTextGuest}
                 onChange={(e) => setInputTextGuest(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleHablarEnEspañol(inputTextGuest)}
-                placeholder="O escribe aquí tu mensaje en español..."
+                placeholder="Escribe aquí tu mensaje en español..."
                 className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white placeholder-white/30 focus:border-[#00bfa5] focus:outline-none"
               />
               <button
                 onClick={() => handleHablarEnEspañol(inputTextGuest)}
                 disabled={!inputTextGuest.trim() || procesando}
-                className="rounded-xl bg-white/15 px-4 py-2 text-xs font-bold text-white hover:bg-white/25 transition-all disabled:opacity-30 cursor-pointer"
+                className="rounded-xl bg-[#00bfa5] px-4 py-2 text-xs font-extrabold text-[#0d0d10] hover:bg-[#00d4b7] transition-all disabled:opacity-30 cursor-pointer"
               >
                 Enviar
               </button>
@@ -414,7 +489,7 @@ export default function GuestRoomPage() {
           <div className="pt-2 w-full">
             <button
               onClick={handleColgar}
-              className="w-full rounded-xl bg-[#00bfa5] py-3 text-xs font-extrabold text-[#0d0d10] hover:bg-[#00d4b7] transition-all cursor-pointer shadow-md"
+              className="w-full rounded-xl bg-red-600/90 py-3 text-xs font-extrabold text-white hover:bg-red-600 transition-all cursor-pointer shadow-md"
             >
               Colgar llamada
             </button>
