@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTwin } from "@/lib/session/useTwin";
+import EvolucionDashboard from "./EvolucionDashboard";
 
-const TABS = [
+const TABS_OWNER = [
+  { key: "evolucion", label: "📈 Evolución de Alumnos" },
   { key: "habitos", label: "📋 Hábitos sugeridos" },
   { key: "constancia", label: "🔥 Constancia" },
   { key: "autoevaluacion", label: "📝 Autoevaluación" },
@@ -11,7 +14,15 @@ const TABS = [
   { key: "estadisticas", label: "📊 Estadísticas" },
 ] as const;
 
-type TabKey = (typeof TABS)[number]["key"];
+const TABS_FOLLOWER = [
+  { key: "evolucion", label: "📈 Mi Evolución Fonética" },
+  { key: "habitos", label: "📋 Hábitos sugeridos" },
+  { key: "constancia", label: "🔥 Constancia" },
+  { key: "autoevaluacion", label: "📝 Autoevaluación" },
+  { key: "alertas", label: "🔔 Recordatorios" },
+] as const;
+
+type TabKey = "evolucion" | "habitos" | "constancia" | "autoevaluacion" | "alertas" | "estadisticas";
 
 const HABITOS_DOCENTES = [
   { nombre: "Conversación con Teacher MindTwin", desc: "Práctica de fluidez oral y pronunciación guiada en inglés.", duracion: "20 min/día", nivel: "Todos los niveles" },
@@ -25,8 +36,12 @@ const DIAS_SEMANA = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const FRECUENCIAS = [1, 2, 3, 5, 7];
 
 export default function MisHabitos() {
+  const searchParams = useSearchParams();
+  const isFollower = searchParams.get("role") === "follower";
+  const tabs = isFollower ? TABS_FOLLOWER : TABS_OWNER;
+
   const { twin, guardar } = useTwin();
-  const [activeTab, setActiveTab] = useState<TabKey>("habitos");
+  const [activeTab, setActiveTab] = useState<TabKey>("evolucion");
 
   // Estados Alertas
   const [recTexto, setRecTexto] = useState("");
@@ -71,29 +86,16 @@ export default function MisHabitos() {
   ];
 
   return (
-    <div className="relative mx-auto max-w-4xl space-y-6 pb-12">
-      {/* Cabecera con tamaño de letra estándar text-2xl */}
-      <div className="border-b border-white/10 pb-4">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-[#1abc9c]">
-          Lili Speak · Metodología & Práctica
-        </p>
-        <h2 className="font-playfair text-2xl font-bold text-white">
-          Mis Hábitos
-        </h2>
-        <p className="text-xs text-white/60 mt-1">
-          Seguimiento de constancia, autoevaluaciones semanales y alertas de estudio.
-        </p>
-      </div>
-
-      {/* Menú de 5 opciones exactas */}
-      <div className="flex flex-wrap gap-2">
-        {TABS.map((t) => (
+    <div className="relative mx-auto max-w-5xl space-y-6 pb-12">
+      {/* Selector de pestañas */}
+      <div className="flex flex-wrap gap-2 border-b border-white/10 pb-4">
+        {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key)}
             className={`rounded-full px-4 py-2 text-xs font-bold transition-all ${
               activeTab === t.key
-                ? "bg-white text-black shadow-lg"
+                ? "bg-[#1abc9c] text-black shadow-lg shadow-[#1abc9c]/20"
                 : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
             }`}
           >
@@ -101,6 +103,9 @@ export default function MisHabitos() {
           </button>
         ))}
       </div>
+
+      {/* 1. PESTAÑA PRINCIPAL: EVOLUCIÓN */}
+      {activeTab === "evolucion" && <EvolucionDashboard />}
 
       {/* Contenido según la pestaña activa */}
       {activeTab === "habitos" && (

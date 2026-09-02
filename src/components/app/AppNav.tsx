@@ -8,7 +8,7 @@ const LINKS_OWNER = [
   { href: "/app/conversar", label: "Mis Conversaciones", icon: "💬" },
   { href: "/app/fuentes", label: "Mis Fuentes", icon: "📂" },
   { href: "/app/cerebro", label: "Mi Cerebro", icon: "🧠" },
-  { href: "/app/habitos", label: "Mis Hábitos", icon: "💚" },
+  { href: "/app/habitos", label: "Mis Progresos", icon: "📈" },
   { href: "/app/videos", label: "Mis Vídeos", icon: "🎬" },
   { href: "/app/herramientas", label: "Mis Herramientas", icon: "🛠️" },
   { href: "/app/clientes", label: "Mis Clientes", icon: "👥" },
@@ -21,7 +21,7 @@ const LINKS_FOLLOWER = [
   { href: "/app/traduccion?role=follower", label: "Traducción Simultánea", icon: "🌐" },
   { href: "/app/fuentes?role=follower", label: "Mis Fuentes", icon: "📂" },
   { href: "/app/cerebro?role=follower", label: "Mi Cerebro", icon: "🧠" },
-  { href: "/app/habitos?role=follower", label: "Mis Hábitos", icon: "💚" },
+  { href: "/app/habitos?role=follower", label: "Mi Progreso", icon: "📈" },
   { href: "/app/school?role=follower", label: "Mi School", icon: "🎓" },
 ];
 
