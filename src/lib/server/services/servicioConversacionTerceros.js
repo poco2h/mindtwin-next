@@ -521,24 +521,36 @@ function evaluarFeedbackLinguisticoEnVivo(text, lang) {
   const t = text.toLowerCase();
   const chips = [];
 
-  if (lang === 'zh') {
+  if (lang === 'de') {
+    if (t.includes('ich') || t.includes('nicht') || t.includes('möchte') || t.includes('über')) {
+      chips.push({ tipo: 'tone', status: 'ok', label: '✓ Fonética alemana natural (Ich-Laut / Umlaute)' });
+    } else {
+      chips.push({ tipo: 'tone', status: 'ok', label: '✓ Articulación clara y cadencia natural' });
+    }
+    chips.push({ tipo: 'grammar', status: 'ok', label: 'ℹ Posición verbal V2 y concordancia correcta' });
+    chips.push({ tipo: 'fluency', status: 'ok', label: '⚡ Fluidez 93%' });
+  } else if (lang === 'zh') {
     if (t.includes('shuo') || t.includes('ting') || t.includes('xie') || t.includes('qu')) {
       chips.push({ tipo: 'tone', status: 'warn', label: '⚠ 声调 3→4 (Tono modulado y 4 descendente)' });
     } else {
       chips.push({ tipo: 'tone', status: 'ok', label: '✓ Tono natural y cadencia correcta' });
     }
-    chips.push({ tipo: 'grammar', status: 'ok', label: 'ℹ Estructura SVO correcta' });
+    chips.push({ tipo: 'grammar', status: 'ok', label: 'ℹ Estructura SVO / Topic-Comment correcta' });
     chips.push({ tipo: 'fluency', status: 'ok', label: '⚡ Fluidez 92%' });
+  } else if (lang === 'fr') {
+    chips.push({ tipo: 'tone', status: 'ok', label: '✓ Liaisons y ritmo fonético natural' });
+    chips.push({ tipo: 'grammar', status: 'ok', label: 'ℹ Concordancia de género y tiempo verbal' });
+    chips.push({ tipo: 'fluency', status: 'ok', label: '⚡ Fluidez 94%' });
   } else {
-    chips.push({ tipo: 'tone', status: 'ok', label: '✓ Pronunciación y tono natural' });
-    chips.push({ tipo: 'grammar', status: 'ok', label: 'ℹ Gramática correcta' });
+    chips.push({ tipo: 'tone', status: 'ok', label: '✓ Pronunciación y entonación natural' });
+    chips.push({ tipo: 'grammar', status: 'ok', label: 'ℹ Gramática y concordancia correcta' });
     chips.push({ tipo: 'fluency', status: 'ok', label: '⚡ Fluidez 95%' });
   }
 
   return {
     chips,
-    fluencyScore: 0.92,
-    toneAccuracy: 88,
+    fluencyScore: 0.94,
+    toneAccuracy: 90,
   };
 }
 

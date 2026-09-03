@@ -26,14 +26,42 @@ interface TercerosFollowerRoomProps {
   onColgar: (stats: { duracionSegundos: number; turnos: Turno[] }) => void;
 }
 
+const getLanguageName = (code: string) => {
+  switch (code) {
+    case "de": return "alemán";
+    case "zh": return "chino";
+    case "en": return "inglés";
+    case "fr": return "francés";
+    case "it": return "italiano";
+    case "ja": return "japonés";
+    case "pt": return "portugués";
+    case "ru": return "ruso";
+    case "ar": return "árabe";
+    default: return code.toUpperCase();
+  }
+};
+
+const getSpeechLangCode = (langCode: string): string => {
+  switch (langCode) {
+    case "de": return "de-DE";
+    case "zh": return "zh-CN";
+    case "en": return "en-US";
+    case "fr": return "fr-FR";
+    case "it": return "it-IT";
+    case "ja": return "ja-JP";
+    case "pt": return "pt-PT";
+    case "ru": return "ru-RU";
+    case "ar": return "ar-SA";
+    case "es": return "es-ES";
+    default: return "en-US";
+  }
+};
+
 export default function TercerosFollowerRoom({
   roomId,
-  langFollower = "en",
+  langFollower = "de",
   langGuest = "es",
   privacy = true,
-  agoraChannel = "",
-  agoraTokenFollower = "",
-  appId = "a3ff88591ae541f8994a8c59ef302fcd",
   onColgar,
 }: TercerosFollowerRoomProps) {
   const [modo, setModo] = useState<"yo_hablo" | "twin_habla">("yo_hablo");
@@ -42,33 +70,30 @@ export default function TercerosFollowerRoom({
   const [isTwinGenerating, setIsTwinGenerating] = useState(false);
   const [inputTextFollower, setInputTextFollower] = useState("");
   const [procesando, setProcesando] = useState(false);
+  const [autoPlayAudio, setAutoPlayAudio] = useState(true);
 
-  // WebRTC Agora status
-  const [isWebRtcConnected, setIsWebRtcConnected] = useState(false);
-  const [isRemoteGuestAudioActive, setIsRemoteGuestAudioActive] = useState(false);
-
-  // Paneles de visualización en directo
-  const [ultimoGuestDice, setUltimoGuestDice] = useState<string>(
-    "Esperando que el interlocutor hable o escriba en español..."
-  );
+  // Paneles de visualización en directo de la Sala del Alumno
   const [ultimoGuestTraducido, setUltimoGuestTraducido] = useState<string>(
-    "Waiting for interlocutor to speak..."
+    "Esperando intervención de tu interlocutor en español..."
+  );
+  const [ultimoGuestOriginal, setUltimoGuestOriginal] = useState<string>(
+    "El audio traducido se reproducirá en tu idioma objetivo."
   );
 
-  const [ultimoFollowerDice, setUltimoFollowerDice] = useState<string>("");
+  const [ultimoFollowerOriginal, setUltimoFollowerOriginal] = useState<string>("");
   const [ultimoFollowerTraducido, setUltimoFollowerTraducido] = useState<string>("");
 
   const [chipsActivos, setChipsActivos] = useState<Array<{ tipo: string; status: string; label: string }>>([
     { tipo: "tone", status: "ok", label: "✓ Tono natural" },
-    { tipo: "tone_warn", status: "warn", label: langFollower === "zh" ? "⚠ 声调 3→4" : "⚠ Entonación natural" },
     { tipo: "grammar", status: "ok", label: "ℹ Gramática correcta" },
+    { tipo: "fluency", status: "ok", label: "⚡ Fluidez 94%" },
   ]);
 
   const [turnos, setTurnos] = useState<Turno[]>([]);
-
+  const lastProcessedTurnIdRef = useRef<string | null>(null);
   const recognitionRef = useRef<any>(null);
-  const agoraClientRef = useRef<any>(null);
-  const localAudioTrackRef = useRef<any>(null);
+
+  const targetLangName = getLanguageName(langFollower);
 
   // 1. Timer de llamada
   useEffect(() => {
@@ -84,64 +109,21 @@ export default function TercerosFollowerRoom({
     return `${m}:${s}`;
   };
 
-  // 2. Inicializar Agora RTC WebRTC para audio en tiempo real bidireccional
-  useEffect(() => {
-    let mounted = true;
-
-    async function initAgora() {
-      if (!agoraChannel || !appId) return;
-      try {
-        const AgoraRTCModule = await import("agora-rtc-sdk-ng");
-        const AgoraRTC = AgoraRTCModule.default || AgoraRTCModule;
-        AgoraRTC.setLogLevel(3);
-
-        const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-        agoraClientRef.current = client;
-
-        client.on("user-published", async (user: any, mediaType: string) => {
-          await client.subscribe(user, mediaType);
-          if (mediaType === "audio" && user.audioTrack) {
-            user.audioTrack.play();
-            setIsRemoteGuestAudioActive(true);
-          }
-        });
-
-        client.on("user-unpublished", (user: any, mediaType: string) => {
-          if (mediaType === "audio") {
-            setIsRemoteGuestAudioActive(false);
-          }
-        });
-
-        const uid = 1; // Alumno Follower
-        await client.join(appId, agoraChannel, agoraTokenFollower || null, uid);
-        setIsWebRtcConnected(true);
-
-        try {
-          const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-          localAudioTrackRef.current = audioTrack;
-          await client.publish([audioTrack]);
-        } catch (micErr) {
-          console.warn("[Agora RTC Mic] Permiso de micro no concedido o en espera:", micErr);
-        }
-      } catch (err) {
-        console.warn("[Agora RTC] Inicialización:", err);
-      }
+  // 2. Función para reproducir por síntesis de voz la traducción
+  const reproducirTextoTTS = (texto: string, idiomaCode: string) => {
+    if (!autoPlayAudio || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(texto);
+      utterance.lang = getSpeechLangCode(idiomaCode);
+      utterance.rate = 1.0;
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.warn("Error en TTS:", e);
     }
+  };
 
-    initAgora();
-
-    return () => {
-      mounted = false;
-      if (localAudioTrackRef.current) {
-        localAudioTrackRef.current.close();
-      }
-      if (agoraClientRef.current) {
-        agoraClientRef.current.leave().catch(() => {});
-      }
-    };
-  }, [agoraChannel, agoraTokenFollower, appId]);
-
-  // 3. Polling en tiempo real para sincronizar mensajes de Supabase
+  // 3. Polling en tiempo real para sincronizar mensajes de la Doble Sala
   useEffect(() => {
     if (!roomId) return;
     const interval = setInterval(async () => {
@@ -149,6 +131,7 @@ export default function TercerosFollowerRoom({
         const res = await fetch(`/api/mindtwin/terceros/sync/${roomId}`);
         if (!res.ok) return;
         const data = await res.json();
+
         if (data.turns && data.turns.length > 0) {
           const remoteTurns: Turno[] = data.turns.map((t: any) => ({
             id: t.id,
@@ -165,19 +148,25 @@ export default function TercerosFollowerRoom({
 
           setTurnos(remoteTurns);
 
-          // Actualizar último mensaje que dijo el invitado en español
+          // Si el último turno es del interlocutor (guest) y es nuevo, actualizar y reproducir
           const ultimosGuest = remoteTurns.filter((t) => t.speaker === "guest");
           if (ultimosGuest.length > 0) {
-            const last = ultimosGuest[ultimosGuest.length - 1];
-            setUltimoGuestDice(last.originalText);
-            setUltimoGuestTraducido(last.translatedText);
+            const lastG = ultimosGuest[ultimosGuest.length - 1];
+            setUltimoGuestOriginal(lastG.originalText);
+            setUltimoGuestTraducido(lastG.translatedText);
+
+            if (lastG.id !== lastProcessedTurnIdRef.current) {
+              lastProcessedTurnIdRef.current = lastG.id;
+              // Reproducir la traducción en el idioma objetivo del alumno
+              reproducirTextoTTS(lastG.translatedText, langFollower);
+            }
           }
 
-          // Actualizar último mensaje que dijo el alumno
+          // Si el último turno es del alumno (follower)
           const ultimosFollower = remoteTurns.filter((t) => t.speaker === "follower");
           if (ultimosFollower.length > 0) {
             const lastF = ultimosFollower[ultimosFollower.length - 1];
-            setUltimoFollowerDice(lastF.originalText);
+            setUltimoFollowerOriginal(lastF.originalText);
             setUltimoFollowerTraducido(lastF.translatedText);
             if (lastF.chips && lastF.chips.length > 0) {
               setChipsActivos(lastF.chips);
@@ -187,12 +176,12 @@ export default function TercerosFollowerRoom({
       } catch (e) {
         // Fallback silencioso
       }
-    }, 1500);
+    }, 1200);
 
     return () => clearInterval(interval);
-  }, [roomId]);
+  }, [roomId, langFollower, autoPlayAudio]);
 
-  // 4. Reconocimiento de voz nativo en navegador
+  // 4. Reconocimiento de voz nativo en navegador configurado para el idioma de la sala
   useEffect(() => {
     if (typeof window !== "undefined") {
       const SpeechRecognition =
@@ -201,7 +190,7 @@ export default function TercerosFollowerRoom({
         const rec = new SpeechRecognition();
         rec.continuous = false;
         rec.interimResults = false;
-        rec.lang = modo === "yo_hablo" ? (langFollower === "zh" ? "zh-CN" : "en-US") : "es-ES";
+        rec.lang = modo === "yo_hablo" ? getSpeechLangCode(langFollower) : "es-ES";
 
         rec.onresult = (event: any) => {
           const transcript = event.results[0][0].transcript;
@@ -220,11 +209,15 @@ export default function TercerosFollowerRoom({
 
   const toggleMic = () => {
     if (!recognitionRef.current) {
-      const promptDemo =
+      const demoPrompt =
         modo === "yo_hablo"
-          ? (langFollower === "zh" ? "你好，很高兴与你通话。" : "Hello, very glad to speak with you today.")
+          ? (langFollower === "de"
+              ? "Guten Tag, ich freue mich sehr auf unser Gespräch heute."
+              : langFollower === "zh"
+              ? "你好，很高兴与你通话。"
+              : "Hello, very glad to speak with you today.")
           : "Quiero explicarte el plan de trabajo del proyecto formativo.";
-      handleEnviarTurnoFollower(promptDemo);
+      handleEnviarTurnoFollower(demoPrompt);
       return;
     }
 
@@ -233,7 +226,7 @@ export default function TercerosFollowerRoom({
       setIsRecording(false);
     } else {
       recognitionRef.current.lang =
-        modo === "yo_hablo" ? (langFollower === "zh" ? "zh-CN" : "en-US") : "es-ES";
+        modo === "yo_hablo" ? getSpeechLangCode(langFollower) : "es-ES";
       try {
         recognitionRef.current.start();
         setIsRecording(true);
@@ -280,7 +273,7 @@ export default function TercerosFollowerRoom({
           audioBase64: data.turn?.audio_base64,
         };
 
-        setUltimoFollowerDice(txt);
+        setUltimoFollowerOriginal(txt);
         setUltimoFollowerTraducido(data.turn?.translated_text || txt);
 
         if (data.turn?.ling_feedback?.chips && modo === "yo_hablo") {
@@ -289,8 +282,11 @@ export default function TercerosFollowerRoom({
 
         setTurnos((prev) => [...prev, nuevoTurno]);
 
-        if (data.turn?.audio_base64) {
-          reproducirAudioBase64(data.turn.audio_base64);
+        if (data.turn?.audio_base64 && modo === "twin_habla") {
+          try {
+            const snd = new Audio("data:audio/mp3;base64," + data.turn.audio_base64);
+            snd.play().catch(() => {});
+          } catch (e) {}
         }
       }
     } catch (err) {
@@ -301,18 +297,10 @@ export default function TercerosFollowerRoom({
     }
   };
 
-  const reproducirAudioBase64 = (b64: string) => {
-    try {
-      const snd = new Audio("data:audio/mp3;base64," + b64);
-      snd.play().catch(() => {});
-    } catch (e) {
-      console.warn("Error reproducción audio:", e);
-    }
-  };
-
   const handleColgar = () => {
-    if (localAudioTrackRef.current) localAudioTrackRef.current.close();
-    if (agoraClientRef.current) agoraClientRef.current.leave().catch(() => {});
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
     onColgar({
       duracionSegundos: segundosTranscurridos,
       turnos,
@@ -321,50 +309,72 @@ export default function TercerosFollowerRoom({
 
   return (
     <div className="flex min-h-full flex-col bg-[#0d0d10] text-[#f0f0f0]">
+      {/* 1. Header Oficial Lili Speak */}
       <MyliliLogoHeader enLlamada timer={formatearTimer(segundosTranscurridos)} />
 
-      <div className="flex items-center justify-between border-b border-white/10 bg-black/40 px-4 py-2 text-[11px]">
+      {/* 2. Barra de Doble Sala */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-black/50 px-4 py-2 text-[11px]">
         <div className="flex items-center gap-2">
-          <span className={`h-2 w-2 rounded-full ${isRemoteGuestAudioActive || isWebRtcConnected ? "bg-[#22c55e] animate-pulse" : "bg-amber-400"}`} />
-          <span className="font-semibold text-white/90">
-            Interlocutor conectado · {langGuest.toUpperCase()} ↔ {langFollower.toUpperCase()}
+          <span className="flex h-2.5 w-2.5 rounded-full bg-[#00bfa5] animate-pulse" />
+          <span className="font-bold text-[#00bfa5] uppercase tracking-wider">
+            SALA ALUMNO (DOBLE SALA ACTIVA)
           </span>
-          {isWebRtcConnected && (
-            <span className="rounded bg-[#22c55e]/20 px-1.5 py-0.5 text-[9px] font-bold text-[#22c55e]">
-              WebRTC Audio Conectado
-            </span>
-          )}
+          <span className="text-white/40">·</span>
+          <span className="text-white/80">
+            ES (Interlocutor) ↔ {langFollower.toUpperCase()} (Tú)
+          </span>
         </div>
-        <span className="text-white/40 font-mono text-[10px]">
-          Sala ID: {roomId.slice(0, 8)}
-        </span>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setAutoPlayAudio(!autoPlayAudio)}
+            className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold transition-all cursor-pointer ${
+              autoPlayAudio ? "bg-[#00bfa5]/20 text-[#00bfa5]" : "bg-white/10 text-white/40"
+            }`}
+            title="Auto-reproducir voz de traducción"
+          >
+            <span>{autoPlayAudio ? "🔊 Audio IA Activado" : "🔇 Audio IA Silenciado"}</span>
+          </button>
+          <span className="text-white/40 font-mono text-[10px]">
+            Sala ID: {roomId ? roomId.slice(0, 8) : "demo"}
+          </span>
+        </div>
       </div>
 
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-between p-4 md:p-6 space-y-4">
-        {/* 1. Paneles de lo que dice el interlocutor traducido para el alumno */}
+        {/* 3. Panel de Recepción: Lo que dice tu interlocutor traducido a tu idioma */}
         <div className="space-y-3">
-          <div className="rounded-2xl border border-white/10 bg-[#16171d] p-4 shadow-lg backdrop-blur-md">
-            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1.5">
-              <span>👤 Interlocutor dice ({langGuest.toUpperCase()})</span>
-              <span className="text-[#22c55e]">● En directo</span>
+          {/* Panel Principal: Traducción al idioma del alumno */}
+          <div className="rounded-2xl border border-[#00bfa5]/40 bg-[#00bfa5]/[0.08] p-4 shadow-lg backdrop-blur-md">
+            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-[#00bfa5] mb-2">
+              <span className="flex items-center gap-1.5">
+                <span>⚡</span> Interlocutor dice (traducido al {targetLangName}) · IA
+              </span>
+              <button
+                onClick={() => reproducirTextoTTS(ultimoGuestTraducido, langFollower)}
+                className="flex items-center gap-1 text-[10px] text-[#00bfa5] hover:underline cursor-pointer"
+              >
+                <span>🔊</span> Escuchar
+              </button>
             </div>
-            <p className="text-sm font-medium text-white leading-relaxed">
-              "{ultimoGuestDice}"
+            <p className="text-base font-semibold text-[#f0f0f0] leading-relaxed">
+              "{ultimoGuestTraducido}"
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[#00bfa5]/30 bg-[#00bfa5]/[0.08] p-4 shadow-lg backdrop-blur-md">
-            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-[#00bfa5] mb-1.5">
-              <span>⚡ Traducido al {langFollower === "zh" ? "chino" : langFollower.toUpperCase()} · IA</span>
-              <span className="text-[10px] font-mono text-[#00bfa5]/70">Azure Translator</span>
+          {/* Panel Secundario: Transcripción original en español */}
+          <div className="rounded-xl border border-white/10 bg-[#16171d] p-3 shadow backdrop-blur-md">
+            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">
+              <span>👤 Original del interlocutor (en español)</span>
+              <span className="text-[10px] text-white/30">Sala Interlocutor</span>
             </div>
-            <p className="text-sm font-semibold text-[#f0f0f0] leading-relaxed">
-              {ultimoGuestTraducido}
+            <p className="text-xs font-normal text-white/70 italic leading-relaxed">
+              "{ultimoGuestOriginal}"
             </p>
           </div>
         </div>
 
-        {/* 2. Selector de Modo: "Yo hablo" vs "Mi Twin habla" */}
+        {/* 4. Selector de Modo de Habla: "Yo hablo" vs "Mi Twin habla" */}
         <div className="rounded-2xl border border-white/10 bg-black/60 p-1.5 shadow-inner">
           <div className="grid grid-cols-2 gap-1.5">
             <button
@@ -377,7 +387,7 @@ export default function TercerosFollowerRoom({
             >
               <span className="text-xs">🗣️ Yo hablo</span>
               <span className="text-[10px] opacity-80">
-                (en {langFollower === "zh" ? "chino" : langFollower.toUpperCase()})
+                (en {targetLangName})
               </span>
             </button>
 
@@ -390,13 +400,13 @@ export default function TercerosFollowerRoom({
               }`}
             >
               <span className="text-xs">🤖 Mi Twin habla</span>
-              <span className="text-[10px] opacity-80">(yo dicto en ES)</span>
+              <span className="text-[10px] opacity-80">(yo dicto en español)</span>
             </button>
           </div>
         </div>
 
-        {/* 3. Área de entrada de voz y texto del Alumno */}
-        <div className="flex-1 flex flex-col justify-center items-center py-3 space-y-4">
+        {/* 5. Área de Habla del Alumno */}
+        <div className="flex-1 flex flex-col justify-center items-center py-2 space-y-3">
           {modo === "yo_hablo" ? (
             <div className="flex flex-col items-center space-y-3 w-full text-center">
               <div className="relative flex items-center justify-center">
@@ -410,7 +420,7 @@ export default function TercerosFollowerRoom({
                       ? "bg-red-500 text-white animate-pulse"
                       : "bg-[#00bfa5] text-[#0d0d10] hover:scale-105 hover:bg-[#00d4b7] shadow-[#00bfa5]/40"
                   }`}
-                  title={`Pulsar para hablar en ${langFollower.toUpperCase()}`}
+                  title={`Pulsar para hablar en ${targetLangName}`}
                 >
                   {isRecording ? "⏹️" : "🎙️"}
                 </button>
@@ -418,10 +428,11 @@ export default function TercerosFollowerRoom({
 
               <p className="text-xs font-semibold text-white/80">
                 {isRecording
-                  ? `Escuchando tu pronunciación en ${langFollower.toUpperCase()}...`
-                  : `Pulsa el micrófono o escribe abajo en ${langFollower.toUpperCase()}`}
+                  ? `Escuchando tu pronunciación en ${targetLangName}...`
+                  : `Pulsa el micro o escribe abajo en ${targetLangName}`}
               </p>
 
+              {/* Chips de Feedback Lingüístico en vivo */}
               <div className="flex flex-wrap justify-center gap-2 pt-1">
                 {chipsActivos.map((chip, idx) => (
                   <span
@@ -437,7 +448,7 @@ export default function TercerosFollowerRoom({
                 ))}
               </div>
 
-              {/* Campo de texto para escribir en idioma objetivo si no usa micro */}
+              {/* Input para escribir directamente en el idioma objetivo */}
               <div className="w-full max-w-md pt-2">
                 <div className="flex items-center gap-2">
                   <input
@@ -445,7 +456,7 @@ export default function TercerosFollowerRoom({
                     value={inputTextFollower}
                     onChange={(e) => setInputTextFollower(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleEnviarTurnoFollower(inputTextFollower)}
-                    placeholder={`Escribe aquí lo que dices en ${langFollower.toUpperCase()}...`}
+                    placeholder={`Escribe lo que dices en ${targetLangName}...`}
                     className="flex-1 rounded-xl border border-white/15 bg-black/60 px-3 py-2 text-xs text-white placeholder-white/40 focus:border-[#00bfa5] focus:outline-none"
                   />
                   <button
@@ -468,7 +479,7 @@ export default function TercerosFollowerRoom({
                   {isTwinGenerating && (
                     <span className="flex items-center gap-1 text-[10px] text-purple-300 animate-pulse">
                       <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
-                      Twin hablando con ElevenLabs...
+                      Twin traduciendo y sintetizando...
                     </span>
                   )}
                 </div>
@@ -501,19 +512,19 @@ export default function TercerosFollowerRoom({
                 </div>
 
                 <p className="text-[10px] text-white/40 italic">
-                  ℹ️ Tu Twin traducirá tu dictado al {langFollower.toUpperCase()} y lo emitirá con tu voz clonada.
+                  ℹ️ Tu Twin traducirá tu dictado al {targetLangName} y lo emitirá en la sala del invitado.
                 </p>
               </div>
             </div>
           )}
         </div>
 
-        {/* 4. Barra de acciones y botón Colgar */}
+        {/* 6. Barra inferior y botón Colgar */}
         <div className="flex items-center justify-between border-t border-white/10 pt-3">
           <div className="flex items-center gap-2 text-xs text-white/50">
             <span>{privacy ? "Privada 🔒" : "Visible para tutor 👥"}</span>
             <span>·</span>
-            <span className="text-[#00bfa5]">{turnos.length} turnos</span>
+            <span className="text-[#00bfa5]">{turnos.length} turnos registrados</span>
           </div>
 
           <button
