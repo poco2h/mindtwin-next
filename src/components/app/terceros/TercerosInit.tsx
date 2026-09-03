@@ -5,15 +5,16 @@ import MyliliLogoHeader from "./MyliliLogoHeader";
 import MyliliFooter from "./MyliliFooter";
 
 const IDIOMAS_DISPONIBLES = [
-  { code: "zh", name: "Chino mandarín (中文)", flag: "🇨🇳" },
+  { code: "es", name: "Español (Español)", flag: "🇪🇸" },
   { code: "en", name: "Inglés (English)", flag: "🇬🇧" },
-  { code: "fr", name: "Francés (Français)", flag: "🇫🇷" },
   { code: "de", name: "Alemán (Deutsch)", flag: "🇩🇪" },
-  { code: "it", name: "Italiano", flag: "🇮🇹" },
+  { code: "zh", name: "Chino mandarín (中文)", flag: "🇨🇳" },
+  { code: "fr", name: "Francés (Français)", flag: "🇫🇷" },
+  { code: "it", name: "Italiano (Italiano)", flag: "🇮🇹" },
   { code: "ja", name: "Japonés (日本語)", flag: "🇯🇵" },
-  { code: "pt", name: "Portugués", flag: "🇵🇹" },
-  { code: "ru", name: "Ruso", flag: "🇷🇺" },
-  { code: "ar", name: "Árabe", flag: "🇸🇦" },
+  { code: "pt", name: "Portugués (Português)", flag: "🇵🇹" },
+  { code: "ru", name: "Ruso (Русский)", flag: "🇷🇺" },
+  { code: "ar", name: "Árabe (العربية)", flag: "🇸🇦" },
 ];
 
 interface TercerosInitProps {
@@ -31,8 +32,9 @@ export default function TercerosInit({
   minutosDisponibles = 45,
   cargando = false,
 }: TercerosInitProps) {
-  const [langFollower, setLangFollower] = useState("zh");
-  const [langGuest, setLangGuest] = useState("es");
+  // Por defecto: Alumno habla Español (es), Interlocutor habla Inglés (en) o Alemán (de)
+  const [langFollower, setLangFollower] = useState("es");
+  const [langGuest, setLangGuest] = useState("en");
   const [privacy, setPrivacy] = useState(true);
   const [faqAbierta, setFaqAbierta] = useState<number | null>(null);
 
@@ -47,16 +49,20 @@ export default function TercerosInit({
 
   const faqs = [
     {
+      q: "¿Cómo funciona la Doble Sala sin solapamiento?",
+      a: "Tú estás en la Sala de Alumno y tu interlocutor entra en la Sala de Invitado. Cada persona habla en su propio idioma y escucha únicamente la voz traducida por la IA (Azure + ElevenLabs) en su idioma correspondiente, sin que las voces se mezclen ni se solapen.",
+    },
+    {
       q: "¿Qué ve el interlocutor al abrir el enlace?",
-      a: "El interlocutor abre el enlace en cualquier navegador (Chrome, Safari, Firefox). No necesita cuenta en Lili Speak ni instalar aplicaciones. Verá una pantalla limpia donde lee lo que dices traducido a su idioma, escucha tu voz clonada en modo Twin y cuenta con su propio micrófono para responder.",
+      a: "El interlocutor entra en su Sala de Invitado en cualquier navegador (Chrome, Safari, móvil). Lee y escucha en su idioma nativo todo lo que dices en español, y cuenta con un botón de micrófono para responderte en su idioma nativo.",
     },
     {
       q: "¿Cuántos minutos consume de mi pack?",
-      a: "La llamada consume 1 minuto de tu pack por cada minuto de conversación activa, exactamente igual que las prácticas con tu MindTwin. El contador se descuenta únicamente al finalizar la llamada, no al iniciar.",
+      a: "La llamada consume 1 minuto de tu pack por cada minuto de conversación activa. El contador se descuenta al finalizar la llamada.",
     },
     {
       q: "¿Qué significa el modo Privacidad ON?",
-      a: "Si activas Privacidad ON, el informe de análisis de errores fonéticos, tonos y la transcripción de la llamada solo serán visibles por ti. Tu tutor u owner no podrá acceder a este informe privado.",
+      a: "Si activas Privacidad ON, el informe de análisis de errores y la transcripción de la llamada solo serán visibles por ti en tu cuenta privada.",
     },
   ];
 
@@ -65,35 +71,32 @@ export default function TercerosInit({
       <MyliliLogoHeader badgeText="Traducción Simultánea" />
 
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-4 py-8">
-        {/* Eyebrow & H1 */}
         <div className="text-center">
           <p className="font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-[#00bfa5]">
-            Conversación con interlocutor
+            Doble Sala · Interpretación Simultánea
           </p>
           <h1 className="mt-2 font-serif text-3xl font-normal tracking-tight text-[#f0f0f0] md:text-4xl">
-            Practica con quien quieras
+            Conversación con Interlocutor
           </h1>
           <p className="mt-2 text-xs text-[#f0f0f0]/60 max-w-lg mx-auto leading-relaxed">
-            Habla en tiempo real con amigos, familiares o clientes. La IA traduce bidireccionalmente y evalúa tu pronunciación en directo.
+            Habla en tiempo real en tu idioma. La IA traduce y sintetiza la voz en el idioma de tu contacto sin solapamientos.
           </p>
         </div>
 
-        {/* Formulario de Configuración */}
         <div className="mt-8 space-y-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-md">
-          {/* Selector de Pares de Idiomas */}
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-[#f0f0f0]/70 mb-2">
-              Par de idiomas de la sesión
+              Configuración de Idiomas de la Doble Sala
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="rounded-xl border border-white/10 bg-black/40 p-3">
                 <span className="text-[10px] font-semibold text-[#00bfa5] uppercase block mb-1">
-                  Tu idioma objetivo (el que aprendes)
+                  Tu idioma (en tu sala)
                 </span>
                 <select
                   value={langFollower}
                   onChange={(e) => setLangFollower(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white focus:border-[#00bfa5] focus:outline-none"
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white focus:border-[#00bfa5] focus:outline-none cursor-pointer"
                 >
                   {IDIOMAS_DISPONIBLES.map((idioma) => (
                     <option key={idioma.code} value={idioma.code} className="bg-[#15191e] text-white">
@@ -104,23 +107,27 @@ export default function TercerosInit({
               </div>
 
               <div className="rounded-xl border border-white/10 bg-black/40 p-3">
-                <span className="text-[10px] font-semibold text-white/50 uppercase block mb-1">
-                  Idioma nativo del interlocutor
+                <span className="text-[10px] font-semibold text-[#00bfa5] uppercase block mb-1">
+                  Idioma de tu interlocutor (en su sala)
                 </span>
                 <select
                   value={langGuest}
                   onChange={(e) => setLangGuest(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white focus:border-[#00bfa5] focus:outline-none"
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white focus:border-[#00bfa5] focus:outline-none cursor-pointer"
                 >
-                  <option value="es" className="bg-[#15191e] text-white">🇪🇸 Español (Nativo)</option>
-                  <option value="en" className="bg-[#15191e] text-white">🇬🇧 Inglés</option>
-                  <option value="fr" className="bg-[#15191e] text-white">🇫🇷 Francés</option>
+                  {IDIOMAS_DISPONIBLES.map((idioma) => (
+                    <option key={idioma.code} value={idioma.code} className="bg-[#15191e] text-white">
+                      {idioma.flag} {idioma.name}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
+            <p className="mt-2 text-[11px] text-white/40 italic">
+              💡 Por ejemplo: Si tú hablas en 🇪🇸 Español y tu interlocutor en 🇬🇧 Inglés, tú lo escucharás en Español y él te escuchará en Inglés.
+            </p>
           </div>
 
-          {/* Toggle de Privacidad */}
           <div className="flex items-center justify-between rounded-xl border border-white/10 bg-black/30 p-4">
             <div className="pr-4">
               <div className="flex items-center gap-2">
@@ -151,7 +158,6 @@ export default function TercerosInit({
             </button>
           </div>
 
-          {/* Indicador de Minutos Restantes (Sin precios) */}
           <div className="flex items-center justify-between rounded-xl border border-[#00bfa5]/25 bg-[#00bfa5]/5 px-4 py-3">
             <div className="flex items-center gap-2 text-xs">
               <span className="text-base">⏱️</span>
@@ -164,7 +170,6 @@ export default function TercerosInit({
             </span>
           </div>
 
-          {/* Botones CTA */}
           <div className="space-y-2 pt-2">
             <button
               onClick={handleCrear}
@@ -183,18 +188,9 @@ export default function TercerosInit({
                 </>
               )}
             </button>
-
-            <button
-              disabled
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-2.5 text-xs font-semibold text-white/40 cursor-not-allowed"
-            >
-              <span>📅</span>
-              <span>Programar cita para más tarde (Próximamente)</span>
-            </button>
           </div>
         </div>
 
-        {/* Acordeón FAQ */}
         <div className="mt-8 space-y-2.5">
           <p className="text-[11px] font-bold uppercase tracking-wider text-white/40 px-1">
             Preguntas Frecuentes
@@ -206,7 +202,7 @@ export default function TercerosInit({
             >
               <button
                 onClick={() => toggleFaq(i)}
-                className="flex w-full items-center justify-between p-3.5 text-left text-xs font-semibold text-white hover:text-[#00bfa5] transition-colors"
+                className="flex w-full items-center justify-between p-3.5 text-left text-xs font-semibold text-white hover:text-[#00bfa5] transition-colors cursor-pointer"
               >
                 <span>{faq.q}</span>
                 <span className="text-white/40 text-sm ml-2">

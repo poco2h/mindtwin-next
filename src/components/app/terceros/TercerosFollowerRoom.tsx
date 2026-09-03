@@ -28,9 +28,10 @@ interface TercerosFollowerRoomProps {
 
 const getLanguageName = (code: string) => {
   switch (code) {
+    case "es": return "español";
+    case "en": return "inglés";
     case "de": return "alemán";
     case "zh": return "chino";
-    case "en": return "inglés";
     case "fr": return "francés";
     case "it": return "italiano";
     case "ja": return "japonés";
@@ -43,24 +44,24 @@ const getLanguageName = (code: string) => {
 
 const getSpeechLangCode = (langCode: string): string => {
   switch (langCode) {
+    case "es": return "es-ES";
+    case "en": return "en-US";
     case "de": return "de-DE";
     case "zh": return "zh-CN";
-    case "en": return "en-US";
     case "fr": return "fr-FR";
     case "it": return "it-IT";
     case "ja": return "ja-JP";
     case "pt": return "pt-PT";
     case "ru": return "ru-RU";
     case "ar": return "ar-SA";
-    case "es": return "es-ES";
-    default: return "en-US";
+    default: return "es-ES";
   }
 };
 
 export default function TercerosFollowerRoom({
   roomId,
-  langFollower = "de",
-  langGuest = "es",
+  langFollower = "es",
+  langGuest = "en",
   privacy = true,
   onColgar,
 }: TercerosFollowerRoomProps) {
@@ -71,13 +72,14 @@ export default function TercerosFollowerRoom({
   const [inputTextFollower, setInputTextFollower] = useState("");
   const [procesando, setProcesando] = useState(false);
   const [autoPlayAudio, setAutoPlayAudio] = useState(true);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
 
   // Paneles de visualización en directo de la Sala del Alumno
   const [ultimoGuestTraducido, setUltimoGuestTraducido] = useState<string>(
-    "Esperando intervención de tu interlocutor en español..."
+    "Esperando intervención de tu interlocutor..."
   );
   const [ultimoGuestOriginal, setUltimoGuestOriginal] = useState<string>(
-    "El audio traducido se reproducirá en tu idioma objetivo."
+    "El audio traducido se reproducirá en tu idioma."
   );
 
   const [ultimoFollowerOriginal, setUltimoFollowerOriginal] = useState<string>("");
@@ -86,14 +88,15 @@ export default function TercerosFollowerRoom({
   const [chipsActivos, setChipsActivos] = useState<Array<{ tipo: string; status: string; label: string }>>([
     { tipo: "tone", status: "ok", label: "✓ Tono natural" },
     { tipo: "grammar", status: "ok", label: "ℹ Gramática correcta" },
-    { tipo: "fluency", status: "ok", label: "⚡ Fluidez 94%" },
+    { tipo: "fluency", status: "ok", label: "⚡ Fluidez 95%" },
   ]);
 
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const lastProcessedTurnIdRef = useRef<string | null>(null);
   const recognitionRef = useRef<any>(null);
 
-  const targetLangName = getLanguageName(langFollower);
+  const followerLangName = getLanguageName(langFollower);
+  const guestLangName = getLanguageName(langGuest);
 
   // 1. Timer de llamada
   useEffect(() => {
@@ -109,10 +112,21 @@ export default function TercerosFollowerRoom({
     return `${m}:${s}`;
   };
 
-  // 2. Función para reproducir por síntesis de voz la traducción
+  // 2. Función para desbloquear y reproducir por síntesis de voz la traducción
+  const unlockAudio = () => {
+    setAudioUnlocked(true);
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      try {
+        const u = new SpeechSynthesisUtterance("");
+        window.speechSynthesis.speak(u);
+      } catch (e) {}
+    }
+  };
+
   const reproducirTextoTTS = (texto: string, idiomaCode: string) => {
     if (!autoPlayAudio || typeof window === "undefined" || !("speechSynthesis" in window)) return;
     try {
+      setAudioUnlocked(true);
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(texto);
       utterance.lang = getSpeechLangCode(idiomaCode);
@@ -157,7 +171,7 @@ export default function TercerosFollowerRoom({
 
             if (lastG.id !== lastProcessedTurnIdRef.current) {
               lastProcessedTurnIdRef.current = lastG.id;
-              // Reproducir la traducción en el idioma objetivo del alumno
+              // Reproducir la traducción en el idioma del alumno (langFollower)
               reproducirTextoTTS(lastG.translatedText, langFollower);
             }
           }
@@ -190,7 +204,7 @@ export default function TercerosFollowerRoom({
         const rec = new SpeechRecognition();
         rec.continuous = false;
         rec.interimResults = false;
-        rec.lang = modo === "yo_hablo" ? getSpeechLangCode(langFollower) : "es-ES";
+        rec.lang = getSpeechLangCode(langFollower);
 
         rec.onresult = (event: any) => {
           const transcript = event.results[0][0].transcript;
@@ -208,15 +222,12 @@ export default function TercerosFollowerRoom({
   }, [modo, langFollower]);
 
   const toggleMic = () => {
+    unlockAudio();
     if (!recognitionRef.current) {
       const demoPrompt =
-        modo === "yo_hablo"
-          ? (langFollower === "de"
-              ? "Guten Tag, ich freue mich sehr auf unser Gespräch heute."
-              : langFollower === "zh"
-              ? "你好，很高兴与你通话。"
-              : "Hello, very glad to speak with you today.")
-          : "Quiero explicarte el plan de trabajo del proyecto formativo.";
+        langFollower === "es"
+          ? "Hola, muy contento de poder hablar contigo hoy."
+          : "Hello, very glad to speak with you today.";
       handleEnviarTurnoFollower(demoPrompt);
       return;
     }
@@ -225,8 +236,7 @@ export default function TercerosFollowerRoom({
       recognitionRef.current.stop();
       setIsRecording(false);
     } else {
-      recognitionRef.current.lang =
-        modo === "yo_hablo" ? getSpeechLangCode(langFollower) : "es-ES";
+      recognitionRef.current.lang = getSpeechLangCode(langFollower);
       try {
         recognitionRef.current.start();
         setIsRecording(true);
@@ -238,6 +248,7 @@ export default function TercerosFollowerRoom({
 
   const handleEnviarTurnoFollower = async (texto: string) => {
     if (!texto.trim() || procesando) return;
+    unlockAudio();
     const txt = texto.trim();
     setInputTextFollower("");
     setProcesando(true);
@@ -317,23 +328,26 @@ export default function TercerosFollowerRoom({
         <div className="flex items-center gap-2">
           <span className="flex h-2.5 w-2.5 rounded-full bg-[#00bfa5] animate-pulse" />
           <span className="font-bold text-[#00bfa5] uppercase tracking-wider">
-            SALA ALUMNO (DOBLE SALA ACTIVA)
+            SALA ALUMNO
           </span>
           <span className="text-white/40">·</span>
           <span className="text-white/80">
-            ES (Interlocutor) ↔ {langFollower.toUpperCase()} (Tú)
+            Tú ({langFollower.toUpperCase()}) ↔ Interlocutor ({langGuest.toUpperCase()})
           </span>
         </div>
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setAutoPlayAudio(!autoPlayAudio)}
+            onClick={() => {
+              unlockAudio();
+              setAutoPlayAudio(!autoPlayAudio);
+            }}
             className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold transition-all cursor-pointer ${
               autoPlayAudio ? "bg-[#00bfa5]/20 text-[#00bfa5]" : "bg-white/10 text-white/40"
             }`}
             title="Auto-reproducir voz de traducción"
           >
-            <span>{autoPlayAudio ? "🔊 Audio IA Activado" : "🔇 Audio IA Silenciado"}</span>
+            <span>{autoPlayAudio ? "🔊 Voz IA Activada" : "🔇 Voz IA Silenciada"}</span>
           </button>
           <span className="text-white/40 font-mono text-[10px]">
             Sala ID: {roomId ? roomId.slice(0, 8) : "demo"}
@@ -348,11 +362,14 @@ export default function TercerosFollowerRoom({
           <div className="rounded-2xl border border-[#00bfa5]/40 bg-[#00bfa5]/[0.08] p-4 shadow-lg backdrop-blur-md">
             <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-[#00bfa5] mb-2">
               <span className="flex items-center gap-1.5">
-                <span>⚡</span> Interlocutor dice (traducido al {targetLangName}) · IA
+                <span>⚡</span> Interlocutor dice (traducido al {followerLangName}) · IA
               </span>
               <button
-                onClick={() => reproducirTextoTTS(ultimoGuestTraducido, langFollower)}
-                className="flex items-center gap-1 text-[10px] text-[#00bfa5] hover:underline cursor-pointer"
+                onClick={() => {
+                  unlockAudio();
+                  reproducirTextoTTS(ultimoGuestTraducido, langFollower);
+                }}
+                className="flex items-center gap-1 rounded bg-[#00bfa5]/20 px-2 py-0.5 text-[10px] font-bold text-[#00bfa5] hover:bg-[#00bfa5]/30 cursor-pointer"
               >
                 <span>🔊</span> Escuchar
               </button>
@@ -362,10 +379,10 @@ export default function TercerosFollowerRoom({
             </p>
           </div>
 
-          {/* Panel Secundario: Transcripción original en español */}
+          {/* Panel Secundario: Transcripción original en idioma del interlocutor */}
           <div className="rounded-xl border border-white/10 bg-[#16171d] p-3 shadow backdrop-blur-md">
             <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">
-              <span>👤 Original del interlocutor (en español)</span>
+              <span>👤 Original del interlocutor (en {guestLangName})</span>
               <span className="text-[10px] text-white/30">Sala Interlocutor</span>
             </div>
             <p className="text-xs font-normal text-white/70 italic leading-relaxed">
@@ -374,7 +391,7 @@ export default function TercerosFollowerRoom({
           </div>
         </div>
 
-        {/* 4. Selector de Modo de Habla: "Yo hablo" vs "Mi Twin habla" */}
+        {/* 4. Selector de Modo de Habla */}
         <div className="rounded-2xl border border-white/10 bg-black/60 p-1.5 shadow-inner">
           <div className="grid grid-cols-2 gap-1.5">
             <button
@@ -387,7 +404,7 @@ export default function TercerosFollowerRoom({
             >
               <span className="text-xs">🗣️ Yo hablo</span>
               <span className="text-[10px] opacity-80">
-                (en {targetLangName})
+                (en {followerLangName})
               </span>
             </button>
 
@@ -400,7 +417,7 @@ export default function TercerosFollowerRoom({
               }`}
             >
               <span className="text-xs">🤖 Mi Twin habla</span>
-              <span className="text-[10px] opacity-80">(yo dicto en español)</span>
+              <span className="text-[10px] opacity-80">(Voz IA clonada)</span>
             </button>
           </div>
         </div>
@@ -420,7 +437,7 @@ export default function TercerosFollowerRoom({
                       ? "bg-red-500 text-white animate-pulse"
                       : "bg-[#00bfa5] text-[#0d0d10] hover:scale-105 hover:bg-[#00d4b7] shadow-[#00bfa5]/40"
                   }`}
-                  title={`Pulsar para hablar en ${targetLangName}`}
+                  title={`Pulsar para hablar en ${followerLangName}`}
                 >
                   {isRecording ? "⏹️" : "🎙️"}
                 </button>
@@ -428,8 +445,8 @@ export default function TercerosFollowerRoom({
 
               <p className="text-xs font-semibold text-white/80">
                 {isRecording
-                  ? `Escuchando tu pronunciación en ${targetLangName}...`
-                  : `Pulsa el micro o escribe abajo en ${targetLangName}`}
+                  ? `Escuchando tu voz en ${followerLangName}...`
+                  : `Pulsa el micro o escribe abajo en ${followerLangName}`}
               </p>
 
               {/* Chips de Feedback Lingüístico en vivo */}
@@ -448,7 +465,7 @@ export default function TercerosFollowerRoom({
                 ))}
               </div>
 
-              {/* Input para escribir directamente en el idioma objetivo */}
+              {/* Input para escribir directamente */}
               <div className="w-full max-w-md pt-2">
                 <div className="flex items-center gap-2">
                   <input
@@ -456,7 +473,7 @@ export default function TercerosFollowerRoom({
                     value={inputTextFollower}
                     onChange={(e) => setInputTextFollower(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleEnviarTurnoFollower(inputTextFollower)}
-                    placeholder={`Escribe lo que dices en ${targetLangName}...`}
+                    placeholder={`Escribe lo que dices en ${followerLangName}...`}
                     className="flex-1 rounded-xl border border-white/15 bg-black/60 px-3 py-2 text-xs text-white placeholder-white/40 focus:border-[#00bfa5] focus:outline-none"
                   />
                   <button
@@ -490,7 +507,7 @@ export default function TercerosFollowerRoom({
                     value={inputTextFollower}
                     onChange={(e) => setInputTextFollower(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleEnviarTurnoFollower(inputTextFollower)}
-                    placeholder="Escribe o dicta en español lo que quieres que tu Twin diga..."
+                    placeholder={`Escribe lo que quieres que tu Twin diga en ${guestLangName}...`}
                     className="flex-1 rounded-xl border border-white/15 bg-black/60 px-4 py-2.5 text-xs text-white placeholder-white/40 focus:border-[#a78bfa] focus:outline-none"
                   />
                   <button
@@ -498,7 +515,7 @@ export default function TercerosFollowerRoom({
                     className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all cursor-pointer ${
                       isRecording ? "bg-red-500 text-white animate-pulse" : "bg-white/10 text-white hover:bg-white/20"
                     }`}
-                    title="Dictar en español"
+                    title="Dictar"
                   >
                     🎙️
                   </button>
@@ -512,7 +529,7 @@ export default function TercerosFollowerRoom({
                 </div>
 
                 <p className="text-[10px] text-white/40 italic">
-                  ℹ️ Tu Twin traducirá tu dictado al {targetLangName} y lo emitirá en la sala del invitado.
+                  ℹ️ Tu Twin traducirá tu mensaje al {guestLangName} y lo emitirá en la sala del invitado.
                 </p>
               </div>
             </div>

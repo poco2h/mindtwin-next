@@ -16,9 +16,10 @@ interface RoomData {
 
 const getLanguageName = (code: string) => {
   switch (code) {
+    case "es": return "español";
+    case "en": return "inglés";
     case "de": return "alemán";
     case "zh": return "chino";
-    case "en": return "inglés";
     case "fr": return "francés";
     case "it": return "italiano";
     case "ja": return "japonés";
@@ -26,6 +27,22 @@ const getLanguageName = (code: string) => {
     case "ru": return "ruso";
     case "ar": return "árabe";
     default: return code.toUpperCase();
+  }
+};
+
+const getSpeechLangCode = (langCode: string): string => {
+  switch (langCode) {
+    case "es": return "es-ES";
+    case "en": return "en-US";
+    case "de": return "de-DE";
+    case "zh": return "zh-CN";
+    case "fr": return "fr-FR";
+    case "it": return "it-IT";
+    case "ja": return "ja-JP";
+    case "pt": return "pt-PT";
+    case "ru": return "ru-RU";
+    case "ar": return "ar-SA";
+    default: return "en-US";
   }
 };
 
@@ -41,6 +58,7 @@ export default function GuestRoomPage() {
   const [segundos, setSegundos] = useState(0);
   const [llamadaFinalizada, setLlamadaFinalizada] = useState(false);
   const [autoPlayAudio, setAutoPlayAudio] = useState(true);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
 
   // Estados de voz y transcripción del invitado
   const [isRecording, setIsRecording] = useState(false);
@@ -48,18 +66,21 @@ export default function GuestRoomPage() {
   const [inputTextGuest, setInputTextGuest] = useState("");
 
   // Mensajes mostrados en vivo en la Sala del Interlocutor
-  const [ultimoTraducidoEspañol, setUltimoTraducidoEspañol] = useState<string>(
-    "Esperando que tu contacto hable en su sala..."
+  const [ultimoTraducidoGuest, setUltimoTraducidoGuest] = useState<string>(
+    "Waiting for your contact to speak..."
   );
   const [ultimoFollowerOriginal, setUltimoFollowerOriginal] = useState<string>(
-    "La traducción al español aparecerá aquí en tiempo real."
+    "Simultaneous translation will appear here in real time."
   );
 
   const recognitionRef = useRef<any>(null);
   const lastProcessedTurnIdRef = useRef<string | null>(null);
 
   const followerName = room?.follower_display_name || "Tu contacto";
-  const targetLangName = getLanguageName(room?.lang_follower || "de");
+  const guestLang = room?.lang_guest || "en";
+  const followerLang = room?.lang_follower || "es";
+  const guestLangName = getLanguageName(guestLang);
+  const followerLangName = getLanguageName(followerLang);
 
   // 1. Cargar metadatos de la sala
   useEffect(() => {
@@ -73,14 +94,22 @@ export default function GuestRoomPage() {
           setErrorEstado(data.message || "Este enlace no es válido o ha expirado.");
         } else {
           setRoom(data);
+          // Set initial placeholder in guest language
+          if (data.lang_guest === "en") {
+            setUltimoTraducidoGuest("Waiting for your contact to speak...");
+            setUltimoFollowerOriginal("Simultaneous translation will appear here in real time.");
+          } else if (data.lang_guest === "es") {
+            setUltimoTraducidoGuest("Esperando que tu contacto hable...");
+            setUltimoFollowerOriginal("La traducción al español aparecerá aquí en tiempo real.");
+          }
         }
       } catch (err) {
         console.warn("Error cargando sala guest:", err);
         setRoom({
           room_id: "demo-room-123",
           agora_channel: "demo-channel",
-          lang_follower: "de",
-          lang_guest: "es",
+          lang_follower: "es",
+          lang_guest: "en",
           follower_display_name: "Ana",
           status: "active",
         });
@@ -107,13 +136,24 @@ export default function GuestRoomPage() {
     return `${min}:${seg}`;
   };
 
-  // 3. Función para reproducir por síntesis de voz en español lo que dijo el alumno
-  const reproducirTextoTTS = (texto: string) => {
+  // 3. Desbloquear y reproducir por síntesis de voz en el idioma del interlocutor (lang_guest)
+  const unlockAudio = () => {
+    setAudioUnlocked(true);
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      try {
+        const u = new SpeechSynthesisUtterance("");
+        window.speechSynthesis.speak(u);
+      } catch (e) {}
+    }
+  };
+
+  const reproducirTextoTTS = (texto: string, idiomaCode: string) => {
     if (!autoPlayAudio || typeof window === "undefined" || !("speechSynthesis" in window)) return;
     try {
+      setAudioUnlocked(true);
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(texto);
-      utterance.lang = "es-ES";
+      utterance.lang = getSpeechLangCode(idiomaCode);
       utterance.rate = 1.0;
       window.speechSynthesis.speak(utterance);
     } catch (e) {
@@ -121,7 +161,7 @@ export default function GuestRoomPage() {
     }
   };
 
-  // 4. Polling en tiempo real para sincronizar lo que dice el alumno (Follower) en la Doble Sala
+  // 4. Polling en tiempo real para sincronizar lo que dice el alumno en la Doble Sala
   useEffect(() => {
     if (!room?.room_id || llamadaFinalizada || errorEstado) return;
     const interval = setInterval(async () => {
@@ -130,7 +170,6 @@ export default function GuestRoomPage() {
         if (!res.ok) return;
         const data = await res.json();
 
-        // Si el alumno cuelga la llamada, reflejar el fin de la sesión
         if (data.room?.status === "ended") {
           setLlamadaFinalizada(true);
           return;
@@ -141,22 +180,24 @@ export default function GuestRoomPage() {
           if (followerTurns.length > 0) {
             const lastF = followerTurns[followerTurns.length - 1];
             setUltimoFollowerOriginal(lastF.original_text || lastF.originalText);
-            setUltimoTraducidoEspañol(lastF.translated_text || lastF.translatedText);
+            setUltimoTraducidoGuest(lastF.translated_text || lastF.translatedText);
 
             if (lastF.id !== lastProcessedTurnIdRef.current) {
               lastProcessedTurnIdRef.current = lastF.id;
 
-              // Si vino con audio clonado de ElevenLabs (Modo Twin)
+              // Si vino con audio clonado de ElevenLabs
               if (lastF.audio_base64) {
                 try {
                   const snd = new Audio("data:audio/mp3;base64," + lastF.audio_base64);
-                  snd.play().catch(() => {});
+                  snd.play().catch(() => {
+                    reproducirTextoTTS(lastF.translated_text || lastF.translatedText, guestLang);
+                  });
                 } catch (e) {
-                  reproducirTextoTTS(lastF.translated_text || lastF.translatedText);
+                  reproducirTextoTTS(lastF.translated_text || lastF.translatedText, guestLang);
                 }
               } else {
-                // Modo "Yo hablo": reproducir la traducción al español
-                reproducirTextoTTS(lastF.translated_text || lastF.translatedText);
+                // Modo estándar: reproducir la traducción en el idioma del interlocutor (guestLang)
+                reproducirTextoTTS(lastF.translated_text || lastF.translatedText, guestLang);
               }
             }
           }
@@ -167,9 +208,9 @@ export default function GuestRoomPage() {
     }, 1200);
 
     return () => clearInterval(interval);
-  }, [room?.room_id, llamadaFinalizada, errorEstado, autoPlayAudio]);
+  }, [room?.room_id, guestLang, llamadaFinalizada, errorEstado, autoPlayAudio]);
 
-  // 5. Reconocimiento de voz para el invitado (en español nativo)
+  // 5. Reconocimiento de voz para el invitado (en su idioma configurado: guestLang)
   useEffect(() => {
     if (typeof window !== "undefined") {
       const SpeechRecognition =
@@ -178,12 +219,12 @@ export default function GuestRoomPage() {
         const rec = new SpeechRecognition();
         rec.continuous = false;
         rec.interimResults = false;
-        rec.lang = "es-ES";
+        rec.lang = getSpeechLangCode(guestLang);
 
         rec.onresult = (event: any) => {
           const transcript = event.results[0][0].transcript;
           if (transcript) {
-            handleHablarEnEspañol(transcript);
+            handleHablarInterlocutor(transcript);
           }
           setIsRecording(false);
         };
@@ -193,12 +234,16 @@ export default function GuestRoomPage() {
         recognitionRef.current = rec;
       }
     }
-  }, [room]);
+  }, [room, guestLang]);
 
   const toggleMic = () => {
+    unlockAudio();
     if (!recognitionRef.current) {
-      const demo = "¡Hola! Te escucho perfectamente y me parece fantástico.";
-      handleHablarEnEspañol(demo);
+      const demo =
+        guestLang === "en"
+          ? "Hello! I hear you very clearly, happy to connect."
+          : "¡Hola! Te escucho perfectamente y me parece fantástico.";
+      handleHablarInterlocutor(demo);
       return;
     }
 
@@ -206,7 +251,7 @@ export default function GuestRoomPage() {
       recognitionRef.current.stop();
       setIsRecording(false);
     } else {
-      recognitionRef.current.lang = "es-ES";
+      recognitionRef.current.lang = getSpeechLangCode(guestLang);
       try {
         recognitionRef.current.start();
         setIsRecording(true);
@@ -216,8 +261,9 @@ export default function GuestRoomPage() {
     }
   };
 
-  const handleHablarEnEspañol = async (texto: string) => {
+  const handleHablarInterlocutor = async (texto: string) => {
     if (!texto.trim() || procesando) return;
+    unlockAudio();
     const txt = texto.trim();
     setInputTextGuest("");
     setProcesando(true);
@@ -230,13 +276,13 @@ export default function GuestRoomPage() {
           room_id: room?.room_id || "demo-room-123",
           speaker: "guest",
           text: txt,
-          lang_follower: room?.lang_follower || "de",
-          lang_guest: "es",
+          lang_follower: followerLang,
+          lang_guest: guestLang,
         }),
       });
 
       if (res.ok) {
-        // Turno guardado exitosamente
+        // Turno guardado y traducido exitosamente
       }
     } catch (err) {
       console.warn("Error enviando voz guest:", err);
@@ -342,13 +388,16 @@ export default function GuestRoomPage() {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setAutoPlayAudio(!autoPlayAudio)}
+            onClick={() => {
+              unlockAudio();
+              setAutoPlayAudio(!autoPlayAudio);
+            }}
             className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold transition-all cursor-pointer ${
               autoPlayAudio ? "bg-[#00bfa5]/20 text-[#00bfa5]" : "bg-white/10 text-white/40"
             }`}
             title="Auto-reproducir voz de traducción"
           >
-            <span>{autoPlayAudio ? "🔊 Audio IA Activado" : "🔇 Audio Silenciado"}</span>
+            <span>{autoPlayAudio ? "🔊 Audio Activado" : "🔇 Audio Silenciado"}</span>
           </button>
           <div className="flex items-center gap-1.5 rounded-full border border-[#22c55e]/30 bg-[#22c55e]/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#22c55e]">
             <span className="h-2 w-2 rounded-full bg-[#22c55e] animate-ping" />
@@ -360,10 +409,10 @@ export default function GuestRoomPage() {
       {/* 2. Banner de Doble Sala */}
       <div className="border-b border-white/10 bg-black/50 px-4 py-2.5 text-center">
         <p className="text-xs font-bold text-white/90">
-          🟢 <span className="text-[#00bfa5]">SALA INTERLOCUTOR (DOBLE SALA ACTIVA)</span> · Conversación con <span className="text-white font-bold">{followerName}</span>
+          🟢 <span className="text-[#00bfa5]">SALA INTERLOCUTOR</span> · Conversación con <span className="text-white font-bold">{followerName}</span>
         </p>
         <p className="mt-0.5 text-[11px] text-white/50">
-          {followerName} está en la Sala de Alumno practicando {targetLangName}. Habla en español y la IA lo traducirá sin solapamientos.
+          Tú hablas y escuchas en <strong className="text-[#00bfa5]">{guestLangName.toUpperCase()}</strong>. {followerName} habla en {followerLangName.toUpperCase()}. La IA traduce en directo sin solapamientos.
         </p>
       </div>
 
@@ -371,7 +420,7 @@ export default function GuestRoomPage() {
       <div className="flex items-center justify-between border-b border-white/5 bg-black/40 px-4 py-1.5 text-[11px] text-white/60">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-[#22c55e]" />
-          <span>{followerName} conectada · {room?.lang_follower?.toUpperCase() || "DE"} ↔ ES</span>
+          <span>{followerName} conectada · {followerLang.toUpperCase()} ↔ {guestLang.toUpperCase()}</span>
         </div>
         <div className="font-mono text-white/80">
           ⏱️ {formatearTimer(segundos)}
@@ -381,28 +430,31 @@ export default function GuestRoomPage() {
       {/* 4. Contenido Principal / Paneles de Recepción */}
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-between p-4 md:p-6 space-y-4">
         <div className="space-y-3">
-          {/* Panel Principal: Traducción al español para que el invitado entienda todo */}
+          {/* Panel Principal: Traducción al idioma del interlocutor (guestLang) */}
           <div className="rounded-2xl border border-[#00bfa5]/40 bg-[#00bfa5]/[0.08] p-4 shadow-lg">
             <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-[#00bfa5] mb-2">
               <span className="flex items-center gap-1.5">
-                <span>⚡</span> {followerName} dice (traducido al español) · IA
+                <span>⚡</span> {followerName} dice (traducido al {guestLangName}) · IA
               </span>
               <button
-                onClick={() => reproducirTextoTTS(ultimoTraducidoEspañol)}
-                className="flex items-center gap-1 text-[10px] text-[#00bfa5] hover:underline cursor-pointer"
+                onClick={() => {
+                  unlockAudio();
+                  reproducirTextoTTS(ultimoTraducidoGuest, guestLang);
+                }}
+                className="flex items-center gap-1 rounded bg-[#00bfa5]/20 px-2 py-0.5 text-[10px] font-bold text-[#00bfa5] hover:bg-[#00bfa5]/30 cursor-pointer"
               >
                 <span>🔊</span> Escuchar
               </button>
             </div>
             <p className="text-base font-semibold text-[#f0f0f0] leading-relaxed">
-              "{ultimoTraducidoEspañol}"
+              "{ultimoTraducidoGuest}"
             </p>
           </div>
 
           {/* Panel Secundario: Pronunciación original del alumno */}
           <div className="rounded-xl border border-white/10 bg-[#16171d] p-3 shadow">
             <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">
-              <span>🗣️ Pronunciación original de {followerName} (en {targetLangName})</span>
+              <span>🗣️ Pronunciación original de {followerName} (en {followerLangName})</span>
               <div className="flex items-center gap-0.5 h-3">
                 <span className="w-1 bg-[#00bfa5] rounded-full animate-[pulse_1s_ease-in-out_infinite] h-2" />
                 <span className="w-1 bg-[#00bfa5] rounded-full animate-[pulse_1.2s_ease-in-out_infinite] h-3.5" />
@@ -428,7 +480,7 @@ export default function GuestRoomPage() {
                   ? "bg-red-500 text-white animate-pulse"
                   : "bg-[#00bfa5] text-[#0d0d10] hover:scale-105 hover:bg-[#00d4b7] shadow-[#00bfa5]/40"
               }`}
-              title="Pulsar para hablar en español"
+              title={`Pulsar para hablar en ${guestLangName}`}
             >
               {isRecording ? "⏹️" : "🎙️"}
             </button>
@@ -436,10 +488,10 @@ export default function GuestRoomPage() {
 
           <div>
             <p className="text-xs font-bold text-white">
-              {isRecording ? "Escuchando... Habla con normalidad en español" : "Habla en español o escribe abajo"}
+              {isRecording ? `Escuchando... Habla en ${guestLangName}` : `Habla o escribe abajo en ${guestLangName}`}
             </p>
             <p className="text-[11px] text-white/50 mt-0.5">
-              La IA lo traducirá y reproducirá al instante en la sala de {followerName}.
+              La IA lo traducirá y reproducirá al instante en {followerLangName} en la sala de {followerName}.
             </p>
           </div>
 
@@ -450,12 +502,12 @@ export default function GuestRoomPage() {
                 type="text"
                 value={inputTextGuest}
                 onChange={(e) => setInputTextGuest(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleHablarEnEspañol(inputTextGuest)}
-                placeholder="Escribe aquí tu mensaje en español..."
+                onKeyDown={(e) => e.key === "Enter" && handleHablarInterlocutor(inputTextGuest)}
+                placeholder={`Escribe aquí tu mensaje en ${guestLangName}...`}
                 className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white placeholder-white/30 focus:border-[#00bfa5] focus:outline-none"
               />
               <button
-                onClick={() => handleHablarEnEspañol(inputTextGuest)}
+                onClick={() => handleHablarInterlocutor(inputTextGuest)}
                 disabled={!inputTextGuest.trim() || procesando}
                 className="rounded-xl bg-[#00bfa5] px-4 py-2 text-xs font-extrabold text-[#0d0d10] hover:bg-[#00d4b7] transition-all disabled:opacity-30 cursor-pointer"
               >
