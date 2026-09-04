@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import MyliliLogoHeader from "./MyliliLogoHeader";
 import MyliliFooter from "./MyliliFooter";
+import { getLanguageName, getSpeechLangCode } from "./TercerosInit";
 
 interface Turno {
   id: string;
@@ -25,38 +26,6 @@ interface TercerosFollowerRoomProps {
   appId?: string;
   onColgar: (stats: { duracionSegundos: number; turnos: Turno[] }) => void;
 }
-
-const getLanguageName = (code: string) => {
-  switch (code) {
-    case "es": return "español";
-    case "en": return "inglés";
-    case "de": return "alemán";
-    case "zh": return "chino";
-    case "fr": return "francés";
-    case "it": return "italiano";
-    case "ja": return "japonés";
-    case "pt": return "portugués";
-    case "ru": return "ruso";
-    case "ar": return "árabe";
-    default: return code.toUpperCase();
-  }
-};
-
-const getSpeechLangCode = (langCode: string): string => {
-  switch (langCode) {
-    case "es": return "es-ES";
-    case "en": return "en-US";
-    case "de": return "de-DE";
-    case "zh": return "zh-CN";
-    case "fr": return "fr-FR";
-    case "it": return "it-IT";
-    case "ja": return "ja-JP";
-    case "pt": return "pt-PT";
-    case "ru": return "ru-RU";
-    case "ar": return "ar-SA";
-    default: return "es-ES";
-  }
-};
 
 export default function TercerosFollowerRoom({
   roomId,
@@ -86,7 +55,7 @@ export default function TercerosFollowerRoom({
   const [ultimoFollowerTraducido, setUltimoFollowerTraducido] = useState<string>("");
 
   const [chipsActivos, setChipsActivos] = useState<Array<{ tipo: string; status: string; label: string }>>([
-    { tipo: "tone", status: "ok", label: "✓ Tono natural" },
+    { tipo: "tone", status: "ok", label: "✓ Pronunciación clara" },
     { tipo: "grammar", status: "ok", label: "ℹ Gramática correcta" },
     { tipo: "fluency", status: "ok", label: "⚡ Fluidez 95%" },
   ]);
@@ -227,6 +196,10 @@ export default function TercerosFollowerRoom({
       const demoPrompt =
         langFollower === "es"
           ? "Hola, muy contento de poder hablar contigo hoy."
+          : langFollower === "fr"
+          ? "Bonjour, je suis très ravi de parler avec vous aujourd'hui."
+          : langFollower === "de"
+          ? "Guten Tag, ich freue mich sehr auf unser Gespräch heute."
           : "Hello, very glad to speak with you today.";
       handleEnviarTurnoFollower(demoPrompt);
       return;
@@ -380,7 +353,7 @@ export default function TercerosFollowerRoom({
           </div>
 
           {/* Panel Secundario: Transcripción original en idioma del interlocutor */}
-          <div className="rounded-xl border border-white/10 bg-[#16171d] p-3 shadow backdrop-blur-md">
+          <div className="rounded-xl border border-white/10 bg-[#16171d]/80 p-3 shadow backdrop-blur-md">
             <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">
               <span>👤 Original del interlocutor (en {guestLangName})</span>
               <span className="text-[10px] text-white/30">Sala Interlocutor</span>

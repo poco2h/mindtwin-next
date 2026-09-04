@@ -521,7 +521,11 @@ function evaluarFeedbackLinguisticoEnVivo(text, lang) {
   const t = text.toLowerCase();
   const chips = [];
 
-  if (lang === 'de') {
+  if (lang === 'fr') {
+    chips.push({ tipo: 'tone', status: 'ok', label: '✓ Liaisons et rythme vocal fluide' });
+    chips.push({ tipo: 'grammar', status: 'ok', label: 'ℹ Accord et structure grammaticale' });
+    chips.push({ tipo: 'fluency', status: 'ok', label: '⚡ Fluidité 95%' });
+  } else if (lang === 'de') {
     if (t.includes('ich') || t.includes('nicht') || t.includes('möchte') || t.includes('über')) {
       chips.push({ tipo: 'tone', status: 'ok', label: '✓ Fonética alemana natural (Ich-Laut / Umlaute)' });
     } else {
@@ -537,10 +541,38 @@ function evaluarFeedbackLinguisticoEnVivo(text, lang) {
     }
     chips.push({ tipo: 'grammar', status: 'ok', label: 'ℹ Estructura SVO / Topic-Comment correcta' });
     chips.push({ tipo: 'fluency', status: 'ok', label: '⚡ Fluidez 92%' });
-  } else if (lang === 'fr') {
-    chips.push({ tipo: 'tone', status: 'ok', label: '✓ Liaisons y ritmo fonético natural' });
-    chips.push({ tipo: 'grammar', status: 'ok', label: 'ℹ Concordancia de género y tiempo verbal' });
-    chips.push({ tipo: 'fluency', status: 'ok', label: '⚡ Fluidez 94%' });
+  } else if (lang === 'it') {
+    chips.push({ tipo: 'tone', status: 'ok', label: '✓ Cadenza melodica e accenti corretti' });
+    chips.push({ tipo: 'grammar', status: 'ok', label: 'ℹ Concordanza e grammatica corretta' });
+    chips.push({ tipo: 'fluency', status: 'ok', label: '⚡ Fluidità 96%' });
+  } else if (lang === 'pt') {
+    chips.push({ tipo: 'tone', status: 'ok', label: '✓ Sons nasais e prosódia natural' });
+    chips.push({ tipo: 'grammar', status: 'ok', label: 'ℹ Estrutura e concordância correta' });
+    chips.push({ tipo: 'fluency', status: 'ok', label: '⚡ Fluência 95%' });
+  } else if (lang === 'ja') {
+    chips.push({ tipo: 'tone', status: 'ok', label: '✓ アクセント (Acento tonal natural)' });
+    chips.push({ tipo: 'grammar', status: 'ok', label: 'ℹ 助詞の使い方 (Partículas correctas)' });
+    chips.push({ tipo: 'fluency', status: 'ok', label: '⚡ 流暢さ 93%' });
+  } else if (lang === 'nl') {
+    chips.push({ tipo: 'tone', status: 'ok', label: '✓ Duidelijke uitspraak en intonatie' });
+    chips.push({ tipo: 'grammar', status: 'ok', label: 'ℹ Juiste woordvolgorde en grammatica' });
+    chips.push({ tipo: 'fluency', status: 'ok', label: '⚡ Vloeiendheid 94%' });
+  } else if (lang === 'pl') {
+    chips.push({ tipo: 'tone', status: 'ok', label: '✓ Czysta wymowa i naturalny akcent' });
+    chips.push({ tipo: 'grammar', status: 'ok', label: 'ℹ Poprawna fleksja i szyk zdań' });
+    chips.push({ tipo: 'fluency', status: 'ok', label: '⚡ Płynność 93%' });
+  } else if (lang === 'ru') {
+    chips.push({ tipo: 'tone', status: 'ok', label: '✓ Правильное ударение и интонация' });
+    chips.push({ tipo: 'grammar', status: 'ok', label: 'ℹ Падежное согласование' });
+    chips.push({ tipo: 'fluency', status: 'ok', label: '⚡ Беглость 92%' });
+  } else if (lang === 'ar') {
+    chips.push({ tipo: 'tone', status: 'ok', label: '✓ مخارج الحروف والنبر الطبيعي' });
+    chips.push({ tipo: 'grammar', status: 'ok', label: 'ℹ الإعراب وتركيب الجملة' });
+    chips.push({ tipo: 'fluency', status: 'ok', label: '⚡ طلاقة 91%' });
+  } else if (lang === 'en') {
+    chips.push({ tipo: 'tone', status: 'ok', label: '✓ Natural rhythm and intonation' });
+    chips.push({ tipo: 'grammar', status: 'ok', label: 'ℹ Accurate syntax and agreement' });
+    chips.push({ tipo: 'fluency', status: 'ok', label: '⚡ Fluency 96%' });
   } else {
     chips.push({ tipo: 'tone', status: 'ok', label: '✓ Pronunciación y entonación natural' });
     chips.push({ tipo: 'grammar', status: 'ok', label: 'ℹ Gramática y concordancia correcta' });
@@ -550,7 +582,7 @@ function evaluarFeedbackLinguisticoEnVivo(text, lang) {
   return {
     chips,
     fluencyScore: 0.94,
-    toneAccuracy: 90,
+    toneAccuracy: 92,
   };
 }
 

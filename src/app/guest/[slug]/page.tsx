@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { ANT_PHOTO_URL } from "@/components/app/terceros/MyliliLogoHeader";
 import MyliliFooter from "@/components/app/terceros/MyliliFooter";
 import ParticleBackground from "@/components/app/LazyParticleBackground";
+import { getLanguageName, getSpeechLangCode } from "@/components/app/terceros/TercerosInit";
 
 interface RoomData {
   room_id: string;
@@ -14,38 +15,6 @@ interface RoomData {
   follower_display_name: string;
   status: string;
 }
-
-const getLanguageName = (code: string) => {
-  switch (code) {
-    case "es": return "español";
-    case "en": return "inglés";
-    case "de": return "alemán";
-    case "zh": return "chino";
-    case "fr": return "francés";
-    case "it": return "italiano";
-    case "ja": return "japonés";
-    case "pt": return "portugués";
-    case "ru": return "ruso";
-    case "ar": return "árabe";
-    default: return code.toUpperCase();
-  }
-};
-
-const getSpeechLangCode = (langCode: string): string => {
-  switch (langCode) {
-    case "es": return "es-ES";
-    case "en": return "en-US";
-    case "de": return "de-DE";
-    case "zh": return "zh-CN";
-    case "fr": return "fr-FR";
-    case "it": return "it-IT";
-    case "ja": return "ja-JP";
-    case "pt": return "pt-PT";
-    case "ru": return "ru-RU";
-    case "ar": return "ar-SA";
-    default: return "en-US";
-  }
-};
 
 export default function GuestRoomPage() {
   const params = useParams();
@@ -68,10 +37,10 @@ export default function GuestRoomPage() {
 
   // Mensajes mostrados en vivo en la Sala del Interlocutor
   const [ultimoTraducidoGuest, setUltimoTraducidoGuest] = useState<string>(
-    "Waiting for your contact to speak..."
+    "Esperando que tu contacto hable..."
   );
   const [ultimoFollowerOriginal, setUltimoFollowerOriginal] = useState<string>(
-    "Simultaneous translation will appear here in real time."
+    "La traducción en tiempo real aparecerá aquí."
   );
 
   const recognitionRef = useRef<any>(null);
@@ -95,13 +64,19 @@ export default function GuestRoomPage() {
           setErrorEstado(data.message || "Este enlace no es válido o ha expirado.");
         } else {
           setRoom(data);
-          // Set initial placeholder in guest language
+          // Set initial placeholder
           if (data.lang_guest === "en") {
             setUltimoTraducidoGuest("Waiting for your contact to speak...");
             setUltimoFollowerOriginal("Simultaneous translation will appear here in real time.");
-          } else if (data.lang_guest === "es") {
+          } else if (data.lang_guest === "fr") {
+            setUltimoTraducidoGuest("En attente de votre contact...");
+            setUltimoFollowerOriginal("La traduction simultanée apparaîtra ici en direct.");
+          } else if (data.lang_guest === "de") {
+            setUltimoTraducidoGuest("Warten auf Gesprächspartner...");
+            setUltimoFollowerOriginal("Die Übersetzung wird hier in Echtzeit angezeigt.");
+          } else {
             setUltimoTraducidoGuest("Esperando que tu contacto hable...");
-            setUltimoFollowerOriginal("La traducción al español aparecerá aquí en tiempo real.");
+            setUltimoFollowerOriginal("La traducción simultánea aparecerá aquí en tiempo real.");
           }
         }
       } catch (err) {
@@ -243,6 +218,10 @@ export default function GuestRoomPage() {
       const demo =
         guestLang === "en"
           ? "Hello! I hear you very clearly, happy to connect."
+          : guestLang === "fr"
+          ? "Bonjour ! Je vous entends très bien, ravi d'échanger avec vous."
+          : guestLang === "de"
+          ? "Hallo! Ich höre Sie sehr gut, freut mich sehr."
           : "¡Hola! Te escucho perfectamente y me parece fantástico.";
       handleHablarInterlocutor(demo);
       return;
@@ -318,7 +297,7 @@ export default function GuestRoomPage() {
         <div className="relative z-10 flex flex-col min-h-screen">
           <header className="border-b border-white/10 bg-black/40 px-4 py-3 backdrop-blur-xl">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white p-0.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white p-0.5 shadow-sm">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={ANT_PHOTO_URL} alt="Mylili" className="h-full w-full object-contain" />
               </div>
@@ -350,7 +329,7 @@ export default function GuestRoomPage() {
         <div className="relative z-10 flex flex-col min-h-screen">
           <header className="border-b border-white/10 bg-black/40 px-4 py-3 backdrop-blur-xl">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white p-0.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white p-0.5 shadow-sm">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={ANT_PHOTO_URL} alt="Mylili" className="h-full w-full object-contain" />
               </div>
@@ -398,157 +377,167 @@ export default function GuestRoomPage() {
             </div>
           </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              unlockAudio();
-              setAutoPlayAudio(!autoPlayAudio);
-            }}
-            className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold transition-all cursor-pointer ${
-              autoPlayAudio ? "bg-[#00bfa5]/20 text-[#00bfa5]" : "bg-white/10 text-white/40"
-            }`}
-            title="Auto-reproducir voz de traducción"
-          >
-            <span>{autoPlayAudio ? "🔊 Audio Activado" : "🔇 Audio Silenciado"}</span>
-          </button>
-          <div className="flex items-center gap-1.5 rounded-full border border-[#22c55e]/30 bg-[#22c55e]/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#22c55e]">
-            <span className="h-2 w-2 rounded-full bg-[#22c55e] animate-ping" />
-            <span>EN LLAMADA</span>
-          </div>
-        </div>
-      </header>
-
-      {/* 2. Banner de Doble Sala */}
-      <div className="border-b border-white/10 bg-black/50 px-4 py-2.5 text-center">
-        <p className="text-xs font-bold text-white/90">
-          🟢 <span className="text-[#00bfa5]">SALA INTERLOCUTOR</span> · Conversación con <span className="text-white font-bold">{followerName}</span>
-        </p>
-        <p className="mt-0.5 text-[11px] text-white/50">
-          Tú hablas y escuchas en <strong className="text-[#00bfa5]">{guestLangName.toUpperCase()}</strong>. {followerName} habla en {followerLangName.toUpperCase()}. La IA traduce en directo sin solapamientos.
-        </p>
-      </div>
-
-      {/* 3. Status Bar */}
-      <div className="flex items-center justify-between border-b border-white/5 bg-black/40 px-4 py-1.5 text-[11px] text-white/60">
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-[#22c55e]" />
-          <span>{followerName} conectada · {followerLang.toUpperCase()} ↔ {guestLang.toUpperCase()}</span>
-        </div>
-        <div className="font-mono text-white/80">
-          ⏱️ {formatearTimer(segundos)}
-        </div>
-      </div>
-
-      {/* 4. Contenido Principal / Paneles de Recepción */}
-      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-between p-4 md:p-6 space-y-4">
-        <div className="space-y-3">
-          {/* Panel Principal: Traducción al idioma del interlocutor (guestLang) */}
-          <div className="rounded-2xl border border-[#00bfa5]/40 bg-[#00bfa5]/[0.08] p-4 shadow-lg">
-            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-[#00bfa5] mb-2">
-              <span className="flex items-center gap-1.5">
-                <span>⚡</span> {followerName} dice (traducido al {guestLangName}) · IA
-              </span>
-              <button
-                onClick={() => {
-                  unlockAudio();
-                  reproducirTextoTTS(ultimoTraducidoGuest, guestLang);
-                }}
-                className="flex items-center gap-1 rounded bg-[#00bfa5]/20 px-2 py-0.5 text-[10px] font-bold text-[#00bfa5] hover:bg-[#00bfa5]/30 cursor-pointer"
-              >
-                <span>🔊</span> Escuchar
-              </button>
-            </div>
-            <p className="text-base font-semibold text-[#f0f0f0] leading-relaxed">
-              "{ultimoTraducidoGuest}"
-            </p>
-          </div>
-
-          {/* Panel Secundario: Pronunciación original del alumno */}
-          <div className="rounded-xl border border-white/10 bg-[#16171d] p-3 shadow">
-            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">
-              <span>🗣️ Pronunciación original de {followerName} (en {followerLangName})</span>
-              <div className="flex items-center gap-0.5 h-3">
-                <span className="w-1 bg-[#00bfa5] rounded-full animate-[pulse_1s_ease-in-out_infinite] h-2" />
-                <span className="w-1 bg-[#00bfa5] rounded-full animate-[pulse_1.2s_ease-in-out_infinite] h-3.5" />
-                <span className="w-1 bg-[#00bfa5] rounded-full animate-[pulse_0.8s_ease-in-out_infinite] h-2" />
-              </div>
-            </div>
-            <p className="text-xs font-normal text-white/70 italic leading-relaxed">
-              "{ultimoFollowerOriginal}"
-            </p>
-          </div>
-        </div>
-
-        {/* 5. Sección Micrófono y Texto para el Interlocutor */}
-        <div className="flex flex-col items-center justify-center py-2 space-y-3 text-center">
-          <div className="relative flex items-center justify-center">
-            {isRecording && (
-              <span className="absolute h-24 w-24 rounded-full bg-[#00bfa5]/30 animate-ping" />
-            )}
+          <div className="flex items-center gap-2">
             <button
-              onClick={toggleMic}
-              className={`relative flex h-[68px] w-[68px] items-center justify-center rounded-full text-2xl transition-all shadow-xl cursor-pointer ${
-                isRecording
-                  ? "bg-red-500 text-white animate-pulse"
-                  : "bg-[#00bfa5] text-[#0d0d10] hover:scale-105 hover:bg-[#00d4b7] shadow-[#00bfa5]/40"
+              onClick={() => {
+                unlockAudio();
+                setAutoPlayAudio(!autoPlayAudio);
+              }}
+              className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold transition-all cursor-pointer ${
+                autoPlayAudio ? "bg-[#00bfa5]/20 text-[#00bfa5]" : "bg-white/10 text-white/40"
               }`}
-              title={`Pulsar para hablar en ${guestLangName}`}
+              title="Auto-reproducir voz de traducción"
             >
-              {isRecording ? "⏹️" : "🎙️"}
+              <span>{autoPlayAudio ? "🔊 Audio Activado" : "🔇 Audio Silenciado"}</span>
             </button>
-          </div>
-
-          <div>
-            <p className="text-xs font-bold text-white">
-              {isRecording ? `Escuchando... Habla en ${guestLangName}` : `Habla o escribe abajo en ${guestLangName}`}
-            </p>
-            <p className="text-[11px] text-white/50 mt-0.5">
-              La IA lo traducirá y reproducirá al instante en {followerLangName} en la sala de {followerName}.
-            </p>
-          </div>
-
-          {/* Input de texto alternativo para escribir si no usa micrófono */}
-          <div className="w-full pt-1">
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={inputTextGuest}
-                onChange={(e) => setInputTextGuest(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleHablarInterlocutor(inputTextGuest)}
-                placeholder={`Escribe aquí tu mensaje en ${guestLangName}...`}
-                className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white placeholder-white/30 focus:border-[#00bfa5] focus:outline-none"
-              />
-              <button
-                onClick={() => handleHablarInterlocutor(inputTextGuest)}
-                disabled={!inputTextGuest.trim() || procesando}
-                className="rounded-xl bg-[#00bfa5] px-4 py-2 text-xs font-extrabold text-[#0d0d10] hover:bg-[#00d4b7] transition-all disabled:opacity-30 cursor-pointer"
-              >
-                Enviar
-              </button>
+            <div className="flex items-center gap-1.5 rounded-full border border-[#22c55e]/30 bg-[#22c55e]/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#22c55e]">
+              <span className="h-2 w-2 rounded-full bg-[#22c55e] animate-ping" />
+              <span>EN LLAMADA</span>
             </div>
           </div>
+        </header>
 
-          {/* Botón Colgar */}
-          <div className="pt-2 w-full">
-            <button
-              onClick={handleColgar}
-              className="w-full rounded-xl bg-red-600/90 py-2.5 text-xs font-extrabold text-white hover:bg-red-600 transition-all cursor-pointer shadow-md"
-            >
-              Colgar llamada
-            </button>
-          </div>
-        </div>
-
-        {/* 6. AVISO LEGAL OBLIGATORIO — EU AI Act Art. 50 */}
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-center">
-          <p className="text-[11px] font-semibold text-amber-300">
-            🇪🇺 Esta sesión usa IA para traducción simultánea en tiempo real (EU AI Act, Art. 50). No se graba audio sin consentimiento.
+        {/* 2. Banner de Doble Sala */}
+        <div className="border-b border-white/10 bg-black/50 px-4 py-2.5 text-center">
+          <p className="text-xs font-bold text-white/90">
+            🟢 <span className="text-[#00bfa5]">SALA INTERLOCUTOR</span> · Conversación con <span className="text-white font-bold">{followerName}</span>
+          </p>
+          <p className="mt-0.5 text-[11px] text-white/50">
+            Tú hablas y escuchas en <strong className="text-[#00bfa5]">{guestLangName.toUpperCase()}</strong>. {followerName} habla en {followerLangName.toUpperCase()}. La IA traduce en directo sin solapamientos.
           </p>
         </div>
-      </main>
 
-      {/* 7. Footer Corporativo MYLILI */}
-      <MyliliFooter />
+        {/* Banner de desbloqueo de audio si no está desbloqueado */}
+        {!audioUnlocked && (
+          <div
+            onClick={unlockAudio}
+            className="cursor-pointer bg-[#00bfa5]/20 border-b border-[#00bfa5]/40 px-4 py-2 text-center text-xs font-bold text-[#00bfa5] hover:bg-[#00bfa5]/30 transition-all"
+          >
+            🔊 Toca aquí para activar el audio en directo en tu navegador
+          </div>
+        )}
+
+        {/* 3. Status Bar */}
+        <div className="flex items-center justify-between border-b border-white/5 bg-black/40 px-4 py-1.5 text-[11px] text-white/60">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-[#22c55e]" />
+            <span>{followerName} conectada · {followerLang.toUpperCase()} ↔ {guestLang.toUpperCase()}</span>
+          </div>
+          <div className="font-mono text-white/80">
+            ⏱️ {formatearTimer(segundos)}
+          </div>
+        </div>
+
+        {/* 4. Contenido Principal / Paneles de Recepción */}
+        <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-between p-4 md:p-6 space-y-4">
+          <div className="space-y-3">
+            {/* Panel Principal: Traducción al idioma del interlocutor (guestLang) */}
+            <div className="rounded-2xl border border-[#00bfa5]/40 bg-[#00bfa5]/[0.08] p-4 shadow-lg backdrop-blur-md">
+              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-[#00bfa5] mb-2">
+                <span className="flex items-center gap-1.5">
+                  <span>⚡</span> {followerName} dice (traducido al {guestLangName}) · IA
+                </span>
+                <button
+                  onClick={() => {
+                    unlockAudio();
+                    reproducirTextoTTS(ultimoTraducidoGuest, guestLang);
+                  }}
+                  className="flex items-center gap-1 rounded bg-[#00bfa5]/20 px-2 py-0.5 text-[10px] font-bold text-[#00bfa5] hover:bg-[#00bfa5]/30 cursor-pointer"
+                >
+                  <span>🔊</span> Escuchar
+                </button>
+              </div>
+              <p className="text-base font-semibold text-[#f0f0f0] leading-relaxed">
+                "{ultimoTraducidoGuest}"
+              </p>
+            </div>
+
+            {/* Panel Secundario: Pronunciación original del alumno */}
+            <div className="rounded-xl border border-white/10 bg-[#16171d]/80 p-3 shadow backdrop-blur-md">
+              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">
+                <span>🗣️ Pronunciación original de {followerName} (en {followerLangName})</span>
+                <div className="flex items-center gap-0.5 h-3">
+                  <span className="w-1 bg-[#00bfa5] rounded-full animate-[pulse_1s_ease-in-out_infinite] h-2" />
+                  <span className="w-1 bg-[#00bfa5] rounded-full animate-[pulse_1.2s_ease-in-out_infinite] h-3.5" />
+                  <span className="w-1 bg-[#00bfa5] rounded-full animate-[pulse_0.8s_ease-in-out_infinite] h-2" />
+                </div>
+              </div>
+              <p className="text-xs font-normal text-white/70 italic leading-relaxed">
+                "{ultimoFollowerOriginal}"
+              </p>
+            </div>
+          </div>
+
+          {/* 5. Sección Micrófono y Texto para el Interlocutor */}
+          <div className="flex flex-col items-center justify-center py-2 space-y-3 text-center">
+            <div className="relative flex items-center justify-center">
+              {isRecording && (
+                <span className="absolute h-24 w-24 rounded-full bg-[#00bfa5]/30 animate-ping" />
+              )}
+              <button
+                onClick={toggleMic}
+                className={`relative flex h-[68px] w-[68px] items-center justify-center rounded-full text-2xl transition-all shadow-xl cursor-pointer ${
+                  isRecording
+                    ? "bg-red-500 text-white animate-pulse"
+                    : "bg-[#00bfa5] text-[#0d0d10] hover:scale-105 hover:bg-[#00d4b7] shadow-[#00bfa5]/40"
+                }`}
+                title={`Pulsar para hablar en ${guestLangName}`}
+              >
+                {isRecording ? "⏹️" : "🎙️"}
+              </button>
+            </div>
+
+            <div>
+              <p className="text-xs font-bold text-white">
+                {isRecording ? `Escuchando... Habla en ${guestLangName}` : `Habla o escribe abajo en ${guestLangName}`}
+              </p>
+              <p className="text-[11px] text-white/50 mt-0.5">
+                La IA lo traducirá y reproducirá al instante en {followerLangName} en la sala de {followerName}.
+              </p>
+            </div>
+
+            {/* Input de texto alternativo para escribir si no usa micrófono */}
+            <div className="w-full pt-1">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={inputTextGuest}
+                  onChange={(e) => setInputTextGuest(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleHablarInterlocutor(inputTextGuest)}
+                  placeholder={`Escribe aquí tu mensaje en ${guestLangName}...`}
+                  className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white placeholder-white/30 focus:border-[#00bfa5] focus:outline-none"
+                />
+                <button
+                  onClick={() => handleHablarInterlocutor(inputTextGuest)}
+                  disabled={!inputTextGuest.trim() || procesando}
+                  className="rounded-xl bg-[#00bfa5] px-4 py-2 text-xs font-extrabold text-[#0d0d10] hover:bg-[#00d4b7] transition-all disabled:opacity-30 cursor-pointer"
+                >
+                  Enviar
+                </button>
+              </div>
+            </div>
+
+            {/* Botón Colgar */}
+            <div className="pt-2 w-full">
+              <button
+                onClick={handleColgar}
+                className="w-full rounded-xl bg-red-600/90 py-2.5 text-xs font-extrabold text-white hover:bg-red-600 transition-all cursor-pointer shadow-md"
+              >
+                Colgar llamada
+              </button>
+            </div>
+          </div>
+
+          {/* 6. AVISO LEGAL OBLIGATORIO — EU AI Act Art. 50 */}
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-center">
+            <p className="text-[11px] font-semibold text-amber-300">
+              🇪🇺 Esta sesión usa IA para traducción simultánea en tiempo real (EU AI Act, Art. 50). No se graba audio sin consentimiento.
+            </p>
+          </div>
+        </main>
+
+        {/* 7. Footer Corporativo MYLILI */}
+        <MyliliFooter />
       </div>
     </div>
   );

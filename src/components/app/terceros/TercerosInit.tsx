@@ -1,21 +1,59 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import MyliliLogoHeader from "./MyliliLogoHeader";
 import MyliliFooter from "./MyliliFooter";
 
-const IDIOMAS_DISPONIBLES = [
+export const IDIOMAS_12_DISPONIBLES = [
   { code: "es", name: "Español (Español)", flag: "🇪🇸" },
   { code: "en", name: "Inglés (English)", flag: "🇬🇧" },
-  { code: "de", name: "Alemán (Deutsch)", flag: "🇩🇪" },
-  { code: "zh", name: "Chino mandarín (中文)", flag: "🇨🇳" },
   { code: "fr", name: "Francés (Français)", flag: "🇫🇷" },
+  { code: "de", name: "Alemán (Deutsch)", flag: "🇩🇪" },
   { code: "it", name: "Italiano (Italiano)", flag: "🇮🇹" },
-  { code: "ja", name: "Japonés (日本語)", flag: "🇯🇵" },
   { code: "pt", name: "Portugués (Português)", flag: "🇵🇹" },
+  { code: "zh", name: "Chino mandarín (中文)", flag: "🇨🇳" },
+  { code: "ja", name: "Japonés (日本語)", flag: "🇯🇵" },
   { code: "ru", name: "Ruso (Русский)", flag: "🇷🇺" },
   { code: "ar", name: "Árabe (العربية)", flag: "🇸🇦" },
+  { code: "nl", name: "Holandés (Nederlands)", flag: "🇳🇱" },
+  { code: "pl", name: "Polaco (Polski)", flag: "🇵🇱" },
 ];
+
+export const getLanguageName = (code: string): string => {
+  switch (code) {
+    case "es": return "español";
+    case "en": return "inglés";
+    case "fr": return "francés";
+    case "de": return "alemán";
+    case "it": return "italiano";
+    case "pt": return "portugués";
+    case "zh": return "chino";
+    case "ja": return "japonés";
+    case "ru": return "ruso";
+    case "ar": return "árabe";
+    case "nl": return "holandés";
+    case "pl": return "polaco";
+    default: return code.toUpperCase();
+  }
+};
+
+export const getSpeechLangCode = (langCode: string): string => {
+  switch (langCode) {
+    case "es": return "es-ES";
+    case "en": return "en-US";
+    case "fr": return "fr-FR";
+    case "de": return "de-DE";
+    case "it": return "it-IT";
+    case "pt": return "pt-PT";
+    case "zh": return "zh-CN";
+    case "ja": return "ja-JP";
+    case "ru": return "ru-RU";
+    case "ar": return "ar-SA";
+    case "nl": return "nl-NL";
+    case "pl": return "pl-PL";
+    default: return "es-ES";
+  }
+};
 
 interface TercerosInitProps {
   onGenerarEnlace: (config: {
@@ -32,11 +70,38 @@ export default function TercerosInit({
   minutosDisponibles = 45,
   cargando = false,
 }: TercerosInitProps) {
-  // Por defecto: Alumno habla Español (es), Interlocutor habla Inglés (en) o Alemán (de)
+  // Inicialización con persistencia en localStorage para evitar reseteos al navegar
   const [langFollower, setLangFollower] = useState("es");
   const [langGuest, setLangGuest] = useState("en");
   const [privacy, setPrivacy] = useState(true);
   const [faqAbierta, setFaqAbierta] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedFollower = localStorage.getItem("mindtwin_ts_lang_follower");
+      const savedGuest = localStorage.getItem("mindtwin_ts_lang_guest");
+      if (savedFollower && IDIOMAS_12_DISPONIBLES.some((i) => i.code === savedFollower)) {
+        setLangFollower(savedFollower);
+      }
+      if (savedGuest && IDIOMAS_12_DISPONIBLES.some((i) => i.code === savedGuest)) {
+        setLangGuest(savedGuest);
+      }
+    }
+  }, []);
+
+  const handleChangeFollower = (code: string) => {
+    setLangFollower(code);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("mindtwin_ts_lang_follower", code);
+    }
+  };
+
+  const handleChangeGuest = (code: string) => {
+    setLangGuest(code);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("mindtwin_ts_lang_guest", code);
+    }
+  };
 
   const toggleFaq = (index: number) => {
     setFaqAbierta(faqAbierta === index ? null : index);
@@ -50,11 +115,11 @@ export default function TercerosInit({
   const faqs = [
     {
       q: "¿Cómo funciona la Doble Sala sin solapamiento?",
-      a: "Tú estás en la Sala de Alumno y tu interlocutor entra en la Sala de Invitado. Cada persona habla en su propio idioma y escucha únicamente la voz traducida por la IA (Azure + ElevenLabs) en su idioma correspondiente, sin que las voces se mezclen ni se solapen.",
+      a: "Tú estás en la Sala de Alumno y tu interlocutor entra en la Sala de Invitado. Cada persona habla en su propio idioma y escucha únicamente la voz traducida por la IA en su idioma correspondiente, sin que las voces se mezclen ni se solapen.",
     },
     {
       q: "¿Qué ve el interlocutor al abrir el enlace?",
-      a: "El interlocutor entra en su Sala de Invitado en cualquier navegador (Chrome, Safari, móvil). Lee y escucha en su idioma nativo todo lo que dices en español, y cuenta con un botón de micrófono para responderte en su idioma nativo.",
+      a: "El interlocutor entra en su Sala de Invitado en cualquier navegador (Chrome, Safari, móvil). Lee y escucha en su idioma nativo todo lo que dices, y cuenta con un botón de micrófono para responderte en su idioma nativo.",
     },
     {
       q: "¿Cuántos minutos consume de mi pack?",
@@ -86,7 +151,7 @@ export default function TercerosInit({
         <div className="mt-8 space-y-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-md">
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-[#f0f0f0]/70 mb-2">
-              Configuración de Idiomas de la Doble Sala
+              Configuración de Idiomas de la Doble Sala (12 Idiomas Soportados)
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="rounded-xl border border-white/10 bg-black/40 p-3">
@@ -95,10 +160,10 @@ export default function TercerosInit({
                 </span>
                 <select
                   value={langFollower}
-                  onChange={(e) => setLangFollower(e.target.value)}
+                  onChange={(e) => handleChangeFollower(e.target.value)}
                   className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white focus:border-[#00bfa5] focus:outline-none cursor-pointer"
                 >
-                  {IDIOMAS_DISPONIBLES.map((idioma) => (
+                  {IDIOMAS_12_DISPONIBLES.map((idioma) => (
                     <option key={idioma.code} value={idioma.code} className="bg-[#15191e] text-white">
                       {idioma.flag} {idioma.name}
                     </option>
@@ -112,10 +177,10 @@ export default function TercerosInit({
                 </span>
                 <select
                   value={langGuest}
-                  onChange={(e) => setLangGuest(e.target.value)}
+                  onChange={(e) => handleChangeGuest(e.target.value)}
                   className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white focus:border-[#00bfa5] focus:outline-none cursor-pointer"
                 >
-                  {IDIOMAS_DISPONIBLES.map((idioma) => (
+                  {IDIOMAS_12_DISPONIBLES.map((idioma) => (
                     <option key={idioma.code} value={idioma.code} className="bg-[#15191e] text-white">
                       {idioma.flag} {idioma.name}
                     </option>
@@ -124,7 +189,7 @@ export default function TercerosInit({
               </div>
             </div>
             <p className="mt-2 text-[11px] text-white/40 italic">
-              💡 Por ejemplo: Si tú hablas en 🇪🇸 Español y tu interlocutor en 🇬🇧 Inglés, tú lo escucharás en Español y él te escuchará en Inglés.
+              💡 Por ejemplo: Si tú hablas en 🇪🇸 {getLanguageName(langFollower).toUpperCase()} y tu interlocutor en 🇬🇧 {getLanguageName(langGuest).toUpperCase()}, tú lo escucharás en {getLanguageName(langFollower)} y él te escuchará en {getLanguageName(langGuest)}.
             </p>
           </div>
 
@@ -179,7 +244,7 @@ export default function TercerosInit({
               {cargando ? (
                 <>
                   <span className="h-4 w-4 rounded-full border-2 border-black border-t-transparent animate-spin" />
-                  <span>Generando sala segura y tokens...</span>
+                  <span>Generando sala segura y enlace...</span>
                 </>
               ) : (
                 <>
