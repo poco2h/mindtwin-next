@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { ANT_PHOTO_URL } from "@/components/app/terceros/MyliliLogoHeader";
 import MyliliFooter from "@/components/app/terceros/MyliliFooter";
+import ParticleBackground from "@/components/app/LazyParticleBackground";
 
 interface RoomData {
   room_id: string;
@@ -300,91 +301,102 @@ export default function GuestRoomPage() {
 
   if (cargando) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#0d0d10] text-white">
-        <div className="h-8 w-8 rounded-full border-2 border-[#00bfa5] border-t-transparent animate-spin mb-3" />
-        <p className="text-xs text-white/60">Conectando a la Sala de Interlocutor de Lili Speak...</p>
+      <div className="relative flex min-h-screen flex-col items-center justify-center bg-black text-white">
+        <ParticleBackground />
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="h-8 w-8 rounded-full border-2 border-[#00bfa5] border-t-transparent animate-spin mb-3" />
+          <p className="text-xs text-white/60">Conectando a la Sala de Interlocutor de Lili Speak...</p>
+        </div>
       </div>
     );
   }
 
   if (errorEstado) {
     return (
-      <div className="flex min-h-screen flex-col bg-[#0d0d10] text-[#f0f0f0]">
-        <header className="border-b border-white/10 bg-[#0d0d10] px-4 py-3">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white p-0.5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={ANT_PHOTO_URL} alt="Mylili" className="h-full w-full object-contain" />
+      <div className="relative flex min-h-screen flex-col bg-black text-[#f0f0f0]">
+        <ParticleBackground />
+        <div className="relative z-10 flex flex-col min-h-screen">
+          <header className="border-b border-white/10 bg-black/40 px-4 py-3 backdrop-blur-xl">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white p-0.5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={ANT_PHOTO_URL} alt="Mylili" className="h-full w-full object-contain" />
+              </div>
+              <span className="font-serif text-[17px] font-normal text-white">Lili Speak</span>
             </div>
-            <span className="font-serif text-[17px] font-normal text-white">Lili Speak</span>
+          </header>
+
+          <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center p-6 text-center">
+            <span className="text-4xl mb-3">⏳</span>
+            <h1 className="font-serif text-2xl font-normal text-white">Este enlace no está disponible</h1>
+            <p className="mt-2 text-xs text-white/60 leading-relaxed">
+              {errorEstado}
+            </p>
+            <p className="mt-4 text-[11px] text-[#00bfa5]">
+              Pídele a tu contacto que te comparta un nuevo enlace desde su app Lili Speak.
+            </p>
           </div>
-        </header>
 
-        <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center p-6 text-center">
-          <span className="text-4xl mb-3">⏳</span>
-          <h1 className="font-serif text-2xl font-normal text-white">Este enlace no está disponible</h1>
-          <p className="mt-2 text-xs text-white/60 leading-relaxed">
-            {errorEstado}
-          </p>
-          <p className="mt-4 text-[11px] text-[#00bfa5]">
-            Pídele a tu contacto que te comparta un nuevo enlace desde su app Lili Speak.
-          </p>
+          <MyliliFooter />
         </div>
-
-        <MyliliFooter />
       </div>
     );
   }
 
   if (llamadaFinalizada) {
     return (
-      <div className="flex min-h-screen flex-col bg-[#0d0d10] text-[#f0f0f0]">
-        <header className="border-b border-white/10 bg-[#0d0d10] px-4 py-3">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white p-0.5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={ANT_PHOTO_URL} alt="Mylili" className="h-full w-full object-contain" />
+      <div className="relative flex min-h-screen flex-col bg-black text-[#f0f0f0]">
+        <ParticleBackground />
+        <div className="relative z-10 flex flex-col min-h-screen">
+          <header className="border-b border-white/10 bg-black/40 px-4 py-3 backdrop-blur-xl">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white p-0.5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={ANT_PHOTO_URL} alt="Mylili" className="h-full w-full object-contain" />
+              </div>
+              <span className="font-serif text-[17px] font-normal text-white">Lili Speak</span>
             </div>
-            <span className="font-serif text-[17px] font-normal text-white">Lili Speak</span>
-          </div>
-        </header>
+          </header>
 
-        <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center p-6 text-center">
-          <div className="h-12 w-12 rounded-full bg-[#22c55e]/20 text-[#22c55e] flex items-center justify-center text-xl mb-3">
-            ✓
+          <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center p-6 text-center">
+            <div className="h-12 w-12 rounded-full bg-[#22c55e]/20 text-[#22c55e] flex items-center justify-center text-xl mb-3">
+              ✓
+            </div>
+            <h1 className="font-serif text-2xl font-normal text-white">Esta llamada ha finalizado</h1>
+            <p className="mt-2 text-xs text-white/60 leading-relaxed">
+              Gracias por participar en la sesión de conversación con {followerName}.
+            </p>
+            <p className="mt-4 text-[10px] text-white/40">
+              Puedes cerrar esta pestaña en tu navegador con total seguridad.
+            </p>
           </div>
-          <h1 className="font-serif text-2xl font-normal text-white">Esta llamada ha finalizado</h1>
-          <p className="mt-2 text-xs text-white/60 leading-relaxed">
-            Gracias por participar en la sesión de conversación con {followerName}.
-          </p>
-          <p className="mt-4 text-[10px] text-white/40">
-            Puedes cerrar esta pestaña en tu navegador con total seguridad.
-          </p>
+
+          <MyliliFooter />
         </div>
-
-        <MyliliFooter />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#0d0d10] text-[#f0f0f0]">
-      {/* 1. Header con Logo de Hormiga Mylili + Lili Speak */}
-      <header className="flex items-center justify-between border-b border-white/10 bg-[#0d0d10] px-4 py-3 backdrop-blur-xl">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white p-0.5 shadow-sm">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ANT_PHOTO_URL} alt="Mylili" className="h-full w-full object-contain" />
+    <div className="relative flex min-h-screen flex-col bg-black text-[#f0f0f0]">
+      <ParticleBackground />
+      <div className="relative z-10 flex flex-col min-h-screen">
+        {/* 1. Header con Logo de Hormiga Mylili + Lili Speak */}
+        <header className="flex items-center justify-between border-b border-white/10 bg-black/40 px-4 py-3 backdrop-blur-xl">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white p-0.5 shadow-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={ANT_PHOTO_URL} alt="Mylili" className="h-full w-full object-contain" />
+            </div>
+            <div className="flex flex-col leading-none">
+              <span className="font-serif text-[17px] font-normal tracking-tight text-[#f0f0f0]">
+                Lili Speak
+              </span>
+              <span className="mt-0.5 text-[8px] font-bold uppercase tracking-widest text-[#f0f0f0]/50">
+                by Mylili
+              </span>
+            </div>
           </div>
-          <div className="flex flex-col leading-none">
-            <span className="font-serif text-[17px] font-normal tracking-tight text-[#f0f0f0]">
-              Lili Speak
-            </span>
-            <span className="mt-0.5 text-[8px] font-bold uppercase tracking-widest text-[#f0f0f0]/50">
-              by Mylili
-            </span>
-          </div>
-        </div>
 
         <div className="flex items-center gap-2">
           <button
@@ -537,6 +549,7 @@ export default function GuestRoomPage() {
 
       {/* 7. Footer Corporativo MYLILI */}
       <MyliliFooter />
+      </div>
     </div>
   );
 }

@@ -65,7 +65,7 @@ export default function TercerosPostCall({
   };
 
   return (
-    <div className="flex min-h-full flex-col bg-[#0d0d10] text-[#f0f0f0] print:bg-white print:text-black">
+    <div className="flex min-h-full flex-col bg-transparent text-[#f0f0f0] print:bg-white print:text-black">
       <div className="print:hidden">
         <MyliliLogoHeader badgeText="Informe de Sesión" />
       </div>

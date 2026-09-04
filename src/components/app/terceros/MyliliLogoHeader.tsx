@@ -16,10 +16,10 @@ export default function MyliliLogoHeader({
   badgeText,
 }: MyliliLogoHeaderProps) {
   return (
-    <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[#0d0d10] px-4 py-3 backdrop-blur-xl">
+    <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-black/40 px-4 py-3 backdrop-blur-xl">
       {/* Logo & Marca */}
       <div className="flex items-center gap-2.5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white p-0.5 shadow-sm">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white p-0.5 shadow-md ring-1 ring-white/20">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={ANT_PHOTO_URL}

@@ -14,15 +14,16 @@ const LINKS_OWNER = [
   { href: "/app/clientes", label: "Mis Clientes", icon: "👥" },
   { href: "/app/followers", label: "Mis Alumnos", icon: "👥" },
   { href: "/app/school", label: "Mi School", icon: "🎓" },
+  { href: "/app/traduccion", label: "Traducción Simultánea", icon: "🌐" },
 ];
 
 const LINKS_FOLLOWER = [
   { href: "/app/conversar?role=follower", label: "Mis Conversaciones", icon: "💬" },
-  { href: "/app/traduccion?role=follower", label: "Traducción Simultánea", icon: "🌐" },
   { href: "/app/fuentes?role=follower", label: "Mis Fuentes", icon: "📂" },
   { href: "/app/cerebro?role=follower", label: "Mi Cerebro", icon: "🧠" },
   { href: "/app/habitos?role=follower", label: "Mi Progreso", icon: "📈" },
   { href: "/app/school?role=follower", label: "Mi School", icon: "🎓" },
+  { href: "/app/traduccion?role=follower", label: "Traducción Simultánea", icon: "🌐" },
 ];
 
 function AppNavInner() {

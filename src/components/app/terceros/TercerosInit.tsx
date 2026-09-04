@@ -67,7 +67,7 @@ export default function TercerosInit({
   ];
 
   return (
-    <div className="flex min-h-full flex-col bg-[#0d0d10] text-[#f0f0f0]">
+    <div className="flex min-h-full flex-col bg-transparent text-[#f0f0f0]">
       <MyliliLogoHeader badgeText="Traducción Simultánea" />
 
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-4 py-8">

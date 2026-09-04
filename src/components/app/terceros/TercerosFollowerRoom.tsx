@@ -319,7 +319,7 @@ export default function TercerosFollowerRoom({
   };
 
   return (
-    <div className="flex min-h-full flex-col bg-[#0d0d10] text-[#f0f0f0]">
+    <div className="flex min-h-full flex-col bg-transparent text-[#f0f0f0]">
       {/* 1. Header Oficial Lili Speak */}
       <MyliliLogoHeader enLlamada timer={formatearTimer(segundosTranscurridos)} />
 
